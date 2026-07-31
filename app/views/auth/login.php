@@ -1,4 +1,5 @@
 <?php $title = 'Login'; ?>
+<?= consoleLog('Login page loaded', ['method' => $_SERVER['REQUEST_METHOD'] ?? 'GET', 'error' => $error]) ?>
 <div class="row justify-content-center">
     <div class="col-lg-5">
         <div class="card shadow-sm border-0">
@@ -6,6 +7,7 @@
                 <h2 class="h4 text-center mb-3">Sign in to iTrack Zimbabwe</h2>
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+                    <?= consoleLog('Login error shown', ['error' => $error]) ?>
                 <?php endif; ?>
                 <form method="post">
                     <?= $this->csrfField() ?>

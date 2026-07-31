@@ -9,11 +9,28 @@ class User extends Model
         $sql = 'SELECT * FROM users WHERE email = :email LIMIT 1';
         $user = $this->fetchOne($sql, [':email' => $email]);
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        debugLog('User::authenticate called', [
+            'email' => $email,
+            'user_found' => $user !== null,
+            'user_id' => $user['id'] ?? null,
+            'password_hash_present' => isset($user['password_hash']),
+        ]);
+
+        if (!$user) {
+            debugLog('User::authenticate no user', ['email' => $email]);
+            return null;
+        }
+
+        if (!password_verify($password, $user['password_hash'])) {
+            debugLog('User::authenticate bad password', [
+                'email' => $email,
+                'user_id' => $user['id'],
+            ]);
             return null;
         }
 
         unset($user['password_hash']);
+        debugLog('User::authenticate success', ['email' => $email, 'user_id' => $user['id']]);
         return $user;
     }
 

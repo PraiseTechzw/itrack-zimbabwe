@@ -4,6 +4,7 @@ require_once __DIR__ . '/env.php';
 
 return [
     'app_name' => env('APP_NAME', 'iTrack Zimbabwe'),
+    'debug' => filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN),
     'base_url' => env('APP_BASE_URL', '/itrack-zimbabwe'),
     'db' => [
         'host' => env('DB_HOST', '127.0.0.1'),

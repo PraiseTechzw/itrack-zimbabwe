@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__) . '/core/Controller.php';
+require_once dirname(__DIR__) . '/helpers/logger.php';
 require_once dirname(__DIR__) . '/models/User.php';
 
 class AuthController extends Controller
@@ -21,18 +22,41 @@ class AuthController extends Controller
         }
 
         $error = '';
+        debugLog('AuthController::login start', [
+            'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
+            'session_user_exists' => !empty($_SESSION['user']),
+        ]);
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = $this->sanitize($_POST['email'] ?? '');
+            $password = (string) ($_POST['password'] ?? '');
+
+            debugLog('AuthController::login form submitted', [
+                'email' => $email,
+                'csrf_token' => $_POST['csrf_token'] ?? null,
+            ]);
+
             if (!$this->validateCsrf()) {
+                debugLog('AuthController::login invalid CSRF', [
+                    'session_csrf' => $_SESSION['csrf_token'] ?? null,
+                    'posted_csrf' => $_POST['csrf_token'] ?? null,
+                ]);
                 $error = 'Invalid security token.';
             } else {
-                $email = $this->sanitize($_POST['email'] ?? '');
-                $password = (string) ($_POST['password'] ?? '');
                 $user = $this->userModel->authenticate($email, $password);
                 if ($user) {
+                    debugLog('AuthController::login success', [
+                        'email' => $email,
+                        'user_id' => $user['id'] ?? null,
+                    ]);
                     $_SESSION['user'] = $user;
                     $_SESSION['user']['logged_in_at'] = date('Y-m-d H:i:s');
                     $this->redirect('/itrack-zimbabwe/public/dashboard.php');
                 }
+
+                debugLog('AuthController::login invalid credentials', [
+                    'email' => $email,
+                ]);
                 $error = 'Invalid credentials';
             }
         }

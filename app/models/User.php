@@ -19,7 +19,7 @@ class User extends Model
 
     public function create(array $data): string
     {
-        $sql = 'INSERT INTO users (name, email, password_hash, role, department, status, created_at) VALUES (:name, :email, :password_hash, :role, :department, :status, NOW())';
+        $sql = 'INSERT INTO users (name, email, password_hash, role, department, status, created_at) VALUES (:name, :email, :password_hash, :role, :department, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':name' => $data['name'],
             ':email' => $data['email'],

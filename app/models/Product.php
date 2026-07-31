@@ -16,7 +16,7 @@ class Product extends Model
 
     public function create(array $data): string
     {
-        $sql = 'INSERT INTO products (name, sku, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :category_id, :unit, :cost_price, :selling_price, :opening_stock, :reorder_level, :status, NOW())';
+        $sql = 'INSERT INTO products (name, sku, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :category_id, :unit, :cost_price, :selling_price, :opening_stock, :reorder_level, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':name' => trim((string) ($data['name'] ?? '')),
             ':sku' => strtoupper(trim((string) ($data['sku'] ?? ''))),

@@ -46,4 +46,9 @@ class GPSDevice extends Model
     {
         $this->execute('DELETE FROM gps_devices WHERE id = :id', [':id' => $id]);
     }
+
+    public function countDevices(): int
+    {
+        return (int) ($this->fetchOne('SELECT COUNT(*) AS total FROM gps_devices')['total'] ?? 0);
+    }
 }

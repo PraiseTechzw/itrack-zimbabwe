@@ -46,4 +46,9 @@ class Client extends Model
     {
         $this->execute('DELETE FROM clients WHERE id = :id', [':id' => $id]);
     }
+
+    public function countClients(): int
+    {
+        return (int) ($this->fetchOne('SELECT COUNT(*) AS total FROM clients')['total'] ?? 0);
+    }
 }

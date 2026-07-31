@@ -131,6 +131,19 @@
         .dashboard-banner p {
             color: var(--text-muted);
         }
+        .sidebar .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 1rem;
+        }
+        .sidebar .nav-item { margin-bottom: 0.45rem; }
+        .sidebar .badge {
+            min-width: 2.2rem;
+            min-height: 2.2rem;
+            background: rgba(99, 102, 241, 0.2);
+            color: #eef2ff;
+        }
         @media (max-width: 991px) {
             .sidebar { max-width: 100%; }
             .content-wrapper { padding: 1.5rem 1rem 2rem; }
@@ -141,7 +154,7 @@
 <div class="container-fluid">
     <div class="row">
         <?php require dirname(__DIR__) . '/layouts/partials/sidebar.php'; ?>
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4 content-wrapper">
             <?php require dirname(__DIR__) . '/layouts/partials/header.php'; ?>
             <?= $contentBlock ?? '' ?>
         </main>

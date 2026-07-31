@@ -1,0 +1,10 @@
+/storage/*.sqlite
+/storage/*.sqlite-journal
+/storage/logs/*
+/storage/cache/*
+/uploads/*
+!.gitkeep
+.env
+.DS_Store
+.idea/
+.vscode/

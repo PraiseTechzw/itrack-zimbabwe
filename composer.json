@@ -1,0 +1,17 @@
+{
+  "name": "itrack-zimbabwe",
+  "description": "ERP-style PHP application scaffold for iTrack Zimbabwe",
+  "type": "project",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "classmap": [
+      "app/",
+      "includes/"
+    ]
+  },
+  "scripts": {
+    "post-autoload-dump": "php -r 'echo "Composer autoload ready.\\n";'"
+  }
+}

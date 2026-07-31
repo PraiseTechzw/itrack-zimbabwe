@@ -16,6 +16,19 @@ $actionName = $route['action'];
 
 $controllerFile = dirname(__DIR__) . '/app/controllers/' . $controllerName . '.php';
 if (!file_exists($controllerFile)) {
+    $fallbackMap = [
+        'GpsController' => 'GPSController',
+        'ClientsController' => 'ClientController',
+        'SuppliersController' => 'SupplierController',
+    ];
+
+    if (isset($fallbackMap[$controllerName])) {
+        $controllerName = $fallbackMap[$controllerName];
+        $controllerFile = dirname(__DIR__) . '/app/controllers/' . $controllerName . '.php';
+    }
+}
+
+if (!file_exists($controllerFile)) {
     http_response_code(404);
     echo 'Controller not found';
     exit;

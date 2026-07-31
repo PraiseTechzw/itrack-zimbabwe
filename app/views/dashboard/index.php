@@ -35,9 +35,21 @@
 
 <div class="mt-4 card shadow-sm border-0">
     <div class="card-body">
-        <h5 class="card-title">Operations</h5>
-        <p class="text-muted mb-3">Manage core ERP activities from one place.</p>
-        <a class="btn btn-primary me-2" href="/itrack-zimbabwe/public/index.php?controller=inventory">Open Inventory</a>
-        <a class="btn btn-outline-secondary" href="/itrack-zimbabwe/public/index.php?controller=inventory&action=create">Create Product</a>
+        <h5 class="card-title">Quick Access</h5>
+        <p class="text-muted mb-3">Open any module directly from the dashboard.</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-primary" href="/itrack-zimbabwe/public/index.php?controller=inventory">Inventory</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=client">Clients</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=supplier">Suppliers</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=accounting">Accounting</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=purchases">Purchases</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=sales">Sales</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=requisition">Requisitions</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=gps">GPS Devices</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=notification">Notifications</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=users">Users</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=reports">Reports</a>
+            <a class="btn btn-secondary" href="/itrack-zimbabwe/public/index.php?controller=settings">Settings</a>
+        </div>
     </div>
 </div>

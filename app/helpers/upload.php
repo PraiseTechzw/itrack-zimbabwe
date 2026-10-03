@@ -1,0 +1,2 @@
+<?php
+if (!function_exists('storeUpload')) { function storeUpload(array $file, string $directory, array $allowed=['jpg','jpeg','png','pdf']): ?string { if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK) return null; $extension=strtolower(pathinfo($file['name']??'', PATHINFO_EXTENSION)); if(!in_array($extension,$allowed,true)) return null; $root=dirname(__DIR__,2) . '/uploads/' . trim($directory,'/'); if(!is_dir($root)) mkdir($root,0775,true); $name=bin2hex(random_bytes(12)).'.'.$extension; return move_uploaded_file($file['tmp_name'],$root.'/'.$name) ? $name : null; } }

@@ -1,0 +1,3 @@
+<?php
+require_once dirname(__DIR__) . '/models/ModuleModel.php';
+class AuditLog extends ModuleModel { public function all(int $limit=100): array{return $this->fetchAll('SELECT a.*,u.name AS user_name FROM audit_logs a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT '.max(1,(int)$limit));} public function record(array $data): string{$this->execute('INSERT INTO audit_logs(user_id,action,target_table,target_id,details) VALUES(?,?,?,?,?)',[(int)($data['user_id']??0)?:null,$data['action']??'', $data['target_table']??'',(int)($data['target_id']??0),$data['details']??'']);return $this->lastInsertId();}}

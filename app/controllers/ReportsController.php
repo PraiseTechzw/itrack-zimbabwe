@@ -67,9 +67,16 @@ class ReportsController extends Controller
 			$answer = (new OpenRouterInsights())->generate($question, $this->model->aiInsightsData());
 			$this->json(['ok' => true, 'answer' => $answer]);
 		} catch (RuntimeException $exception) {
-			http_response_code(str_contains($exception->getMessage(), 'not configured') ? 503 : 502);
-			$this->json(['ok' => false, 'error' => $exception->getMessage()]);
+			$isConfigurationError = str_contains($exception->getMessage(), 'not configured');
+			http_response_code($isConfigurationError ? 503 : 502);
+			if (!$isConfigurationError) {
+				error_log('AI insights request failed: ' . $exception->getMessage());
+			}
+			$this->json(['ok' => false, 'error' => $isConfigurationError
+				? 'The AI assistant is not configured. Add OPENROUTER_API_KEY to the server environment.'
+				: 'The AI service could not complete the request. Check the API key, model, and connection.']);
 		} catch (Throwable $exception) {
+			error_log('Unexpected AI insights error: ' . $exception->getMessage());
 			http_response_code(502);
 			$this->json(['ok' => false, 'error' => 'Unable to generate insights right now.']);
 		}

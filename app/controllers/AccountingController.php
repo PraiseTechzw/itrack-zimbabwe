@@ -95,9 +95,13 @@ class AccountingController extends Controller
 
         $summaries = [
             'invoices' => $this->invoiceModel->countInvoices(),
+            'invoice_total' => $this->invoiceModel->totalAmount(),
             'payments' => $this->paymentModel->countPayments(),
+            'payment_total' => $this->paymentModel->totalAmount(),
             'expenses' => $this->expenseModel->countExpenses(),
+            'expense_total' => $this->expenseModel->totalAmount(),
             'petty_cash' => $this->pettyCashModel->countEntries(),
+            'petty_cash_total' => $this->pettyCashModel->totalAmount(),
             'cash_balance' => $this->cashBookModel->lastBalance(),
         ];
 
@@ -106,6 +110,9 @@ class AccountingController extends Controller
             'summaries' => $summaries,
             'recentInvoices' => $this->invoiceModel->recent(),
             'recentPayments' => $this->paymentModel->recent(),
+            'recentExpenses' => $this->expenseModel->recent(),
+            'recentPettyCash' => $this->pettyCashModel->recent(),
+            'recentCashBook' => $this->cashBookModel->recent(),
         ]);
     }
 

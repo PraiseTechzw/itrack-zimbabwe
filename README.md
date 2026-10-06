@@ -22,6 +22,12 @@ From the repository root:
 php -S 127.0.0.1:8000 -t public
 ```
 
+On Windows (PowerShell or Command Prompt), run the same command:
+
+```powershell
+C:\xampp\php\php.exe -S 127.0.0.1:8000 -t public
+```
+
 Open [http://127.0.0.1:8000/login.php](http://127.0.0.1:8000/login.php).
 
 The application creates or uses `storage/itrack.sqlite` when PDO MySQL is unavailable. Configure `APP_BASE_URL`, database settings, and session settings in `.env` for a subdirectory or production deployment.

@@ -13,6 +13,7 @@ if ($currentUserId > 0) {
 ?>
 <header class="topbar">
     <button class="menu-toggle" type="button" aria-label="Open navigation"><i class="fa-solid fa-bars"></i></button>
+    <a class="topbar-brand" href="/dashboard.php" aria-label="iTrack dashboard"><span class="brand-mark"><i class="fa-solid fa-route"></i></span><span>iTrack</span></a>
     <div class="crumb"><span class="d-none d-sm-inline">Workspace</span><i class="fa-solid fa-chevron-right mx-2" style="font-size:9px;color:#aab4c4"></i><strong><?= htmlspecialchars($headerSection) ?></strong></div>
     <div class="top-actions">
         <a class="icon-button" href="/index.php?controller=notification" aria-label="Notifications" data-notification-link>

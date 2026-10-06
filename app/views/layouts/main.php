@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <?php $isPublicAuthPage = in_array($view ?? '', ['auth/login', 'auth/register', 'auth/forgot-password'], true); ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0b1324">
@@ -34,6 +35,8 @@
         .main-area { min-width:0; flex:1; }
         .topbar { height:76px; display:flex; align-items:center; gap:16px; padding:0 34px; background:rgba(255,255,255,.88); border-bottom:1px solid var(--line); backdrop-filter:blur(16px); position:sticky; top:0; z-index:10; }
         .menu-toggle { display:none; width:38px; height:38px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+        .topbar-brand { display:none; align-items:center; gap:8px; text-decoration:none; color:var(--ink); font-size:13px; font-weight:850; }
+        .topbar-brand .brand-mark { width:32px; height:32px; border-radius:10px; }
         .crumb { font-size:13px; color:var(--muted); }
         .crumb strong { color:var(--ink); font-weight:750; }
         .top-actions { margin-left:auto; display:flex; align-items:center; gap:10px; }
@@ -95,12 +98,86 @@
         .card > .card-body > .d-flex.justify-content-between { gap:14px; } .card .form-select-sm { min-width:118px; padding-top:.42rem; padding-bottom:.42rem; }
         .alert { border:0; border-radius:12px; font-size:13px; } .badge { border-radius:999px; font-weight:750; padding:.46em .72em; }
         .btn-outline-secondary { color:#56647a; border-color:#d9e0eb; } .btn-outline-secondary:hover { color:var(--brand); border-color:#c7c3ff; background:#fafaff; }
+        .auth-body { min-height:100vh; background:#f7f8fc; }
+        .auth-site { min-height:100vh; display:flex; flex-direction:column; }
+        .auth-header { min-height:78px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px clamp(20px, 6vw, 88px); border-bottom:1px solid #e9edf4; background:rgba(255,255,255,.88); }
+        .auth-brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; }
+        .auth-brand .brand-mark { width:42px; height:42px; border-radius:13px; font-size:16px; }
+        .auth-brand-name { font-size:15px; line-height:1.05; font-weight:850; letter-spacing:.015em; }
+        .auth-brand-subtitle { margin-top:4px; color:#8a96a8; font-size:9px; font-weight:750; letter-spacing:.15em; text-transform:uppercase; }
+        .auth-header-note { display:flex; align-items:center; gap:20px; color:#7b879a; font-size:12px; }
+        .auth-header-note a { color:var(--brand); text-decoration:none; font-weight:750; }
+        .auth-header-note a:hover { color:#3730a3; text-decoration:underline; }
+        .auth-main { width:min(1120px, calc(100% - 40px)); flex:1; display:grid; grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); align-items:center; gap:clamp(38px, 8vw, 110px); margin:0 auto; padding:58px 0; }
+        .auth-story { position:relative; padding:24px 0; }
+        .auth-story:before { content:""; position:absolute; width:360px; height:360px; border-radius:50%; left:-145px; top:-140px; background:radial-gradient(circle, rgba(99,102,241,.11), rgba(99,102,241,0) 70%); pointer-events:none; }
+        .auth-story > * { position:relative; }
+        .auth-kicker { display:flex; align-items:center; gap:9px; margin:0 0 17px; color:#6158cf; font-size:10px; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
+        .auth-kicker:before { content:""; width:20px; height:2px; border-radius:2px; background:#746bf0; }
+        .auth-story h1 { max-width:520px; margin:0; color:#111b30; font-size:clamp(36px, 4.4vw, 56px); line-height:1.04; font-weight:850; letter-spacing:-.055em; }
+        .auth-story-copy { max-width:460px; margin:20px 0 0; color:#69768b; font-size:15px; line-height:1.75; }
+        .auth-benefits { display:grid; gap:13px; margin:32px 0 0; padding:0; list-style:none; color:#3e4a60; font-size:13px; font-weight:650; }
+        .auth-benefits li { display:flex; align-items:center; gap:11px; }
+        .auth-benefits i { display:grid; place-items:center; width:23px; height:23px; border-radius:8px; color:#16845b; background:#e5f6ee; font-size:11px; }
+        .auth-panel { padding:clamp(24px, 4vw, 38px); border:1px solid #e7ebf3; border-radius:22px; background:#fff; box-shadow:0 25px 70px rgba(22,32,57,.09); }
+        .auth-panel-heading { margin-bottom:26px; }
+        .auth-panel-heading h2 { margin:0; color:#111b30; font-size:26px; font-weight:850; letter-spacing:-.045em; }
+        .auth-panel-heading p { margin:8px 0 0; color:#79859a; font-size:13px; line-height:1.55; }
+        .auth-form { display:grid; gap:17px; }
+        .auth-field label { display:block; margin-bottom:7px; color:#344158; font-size:12px; font-weight:750; }
+        .auth-field .form-control { min-height:47px; padding:12px 13px; border-color:#e1e6ef; border-radius:10px; color:#182238; font-size:13px; }
+        .auth-field .form-control::placeholder { color:#a0aabc; }
+        .auth-field .form-control:focus { border-color:#938cf5; box-shadow:0 0 0 4px rgba(99,102,241,.11); }
+        .auth-form .btn { min-height:47px; margin-top:2px; font-size:13px; }
+        .auth-form .btn i { margin-left:7px; font-size:11px; }
+        .auth-form-meta { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:-3px; color:#707d91; font-size:12px; }
+        .auth-form-meta a, .auth-panel-footer a { color:var(--brand); font-weight:750; text-decoration:none; }
+        .auth-form-meta a:hover, .auth-panel-footer a:hover { text-decoration:underline; }
+        .auth-panel-footer { margin:20px 0 0; padding-top:18px; border-top:1px solid #edf0f5; color:#7c8799; font-size:12px; text-align:center; }
+        .auth-security-note { display:flex; justify-content:center; align-items:center; gap:7px; margin-top:17px; color:#8490a2; font-size:11px; }
+        .auth-security-note i { color:#16845b; }
+        .auth-main .alert { margin-bottom:19px; padding:12px 14px; }
+        .auth-footer { padding:0 20px 22px; color:#9aa4b4; font-size:11px; text-align:center; }
+        @media (max-width:850px) { .auth-main { grid-template-columns:minmax(0, 460px); justify-content:center; gap:8px; padding:38px 0 48px; } .auth-story { padding:12px 0 20px; } .auth-story h1 { max-width:580px; font-size:clamp(34px, 7vw, 46px); } .auth-story-copy { margin-top:12px; font-size:14px; } .auth-benefits { grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:18px; font-size:11px; } .auth-benefits li { align-items:flex-start; gap:7px; } }
+        @media (max-width:575px) { .topbar-brand { display:flex; } .crumb { display:none; } .auth-header { min-height:68px; padding:11px 18px; } .auth-header-note { gap:0; font-size:11px; } .auth-header-note > span { display:none; } .auth-main { width:min(calc(100% - 28px), 460px); padding:27px 0 35px; } .auth-story { padding:8px 0 19px; } .auth-story h1 { font-size:34px; } .auth-story-copy { font-size:13px; } .auth-benefits { grid-template-columns:1fr; gap:8px; margin-top:15px; } .auth-panel { padding:23px 20px; border-radius:17px; } .auth-panel-heading { margin-bottom:21px; } .auth-panel-heading h2 { font-size:23px; } .auth-footer { padding-bottom:16px; } }
         @media (max-width:1199px) { .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
         @media (max-width:991px) { .sidebar { position:fixed; left:-280px; transition:left .25s ease; } body.sidebar-open .sidebar { left:0; box-shadow:18px 0 48px rgba(15,23,42,.24); } .menu-toggle { display:grid; place-items:center; } .topbar { padding:0 18px; } .content-wrapper { padding:26px 18px 40px; } .dashboard-grid { grid-template-columns:1fr; } }
         @media (max-width:575px) { .stats-grid { grid-template-columns:1fr; } .user-pill span { display:none; } .topbar { height:66px; } .content-wrapper { padding:22px 14px 34px; } .card .card-body { padding:17px; } }
     </style>
 </head>
-<body>
+<body<?= $isPublicAuthPage ? ' class="auth-body"' : '' ?>>
+<?php if ($isPublicAuthPage): ?>
+    <?php
+    $authAction = [
+        'auth/login' => ['label' => 'Create account', 'href' => '/index.php?controller=auth&action=register', 'prompt' => 'New to iTrack?'],
+        'auth/register' => ['label' => 'Sign in', 'href' => '/login.php', 'prompt' => 'Already registered?'],
+        'auth/forgot-password' => ['label' => 'Back to sign in', 'href' => '/login.php', 'prompt' => 'Remember your password?'],
+    ][$view];
+    ?>
+    <div class="auth-site">
+        <header class="auth-header">
+            <a class="auth-brand" href="/login.php" aria-label="iTrack Zimbabwe home">
+                <span class="brand-mark"><i class="fa-solid fa-route"></i></span>
+                <span><span class="auth-brand-name d-block">iTrack Zimbabwe</span><span class="auth-brand-subtitle d-block">Operations platform</span></span>
+            </a>
+            <div class="auth-header-note"><span><?= htmlspecialchars($authAction['prompt'], ENT_QUOTES, 'UTF-8') ?></span><a href="<?= htmlspecialchars($authAction['href'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($authAction['label'], ENT_QUOTES, 'UTF-8') ?> <i class="fa-solid fa-arrow-right ms-1"></i></a></div>
+        </header>
+        <main class="auth-main">
+            <section class="auth-story" aria-label="About iTrack Zimbabwe">
+                <p class="auth-kicker">One workspace. Every operation.</p>
+                <h1>Keep your operations moving.</h1>
+                <p class="auth-story-copy">A clearer view of your inventory, teams and day-to-day work — all in one secure place.</p>
+                <ul class="auth-benefits">
+                    <li><i class="fa-solid fa-check"></i><span>Stay on top of inventory</span></li>
+                    <li><i class="fa-solid fa-check"></i><span>Keep teams in sync</span></li>
+                    <li><i class="fa-solid fa-check"></i><span>Make informed decisions</span></li>
+                </ul>
+            </section>
+            <div class="auth-panel-wrap"><?= $contentBlock ?? '' ?></div>
+        </main>
+        <footer class="auth-footer">© <?= date('Y') ?> iTrack Zimbabwe <span class="mx-2">·</span> Built for better operations</footer>
+    </div>
+<?php else: ?>
 <div class="app-shell">
     <?php require dirname(__DIR__) . '/layouts/partials/sidebar.php'; ?>
     <div class="main-area">
@@ -207,5 +284,6 @@
     requestDesktopPushPermission();
     window.addEventListener('load', loadNotifications);
 </script>
+<?php endif; ?>
 </body>
 </html>

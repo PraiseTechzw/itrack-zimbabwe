@@ -4,29 +4,26 @@ $currentController = strtolower($_GET['controller'] ?? 'dashboard');
 if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'dashboard.php') $currentController = 'dashboard';
 $role = currentUser()['role'] ?? 'Staff';
 $role = $role === 'admin' ? 'Administrator' : $role;
-$navModules = [
-    ['label'=>'Dashboard','route'=>'dashboard','icon'=>'fa-gauge-high','roles'=>['Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','Staff'],'group'=>'Workspace'],
-    ['label'=>'Inventory','route'=>'inventory','icon'=>'fa-boxes-stacked','roles'=>['Administrator','Procurement Officer','Store Officer','Staff'],'group'=>'Management'],
-    ['label'=>'Clients','route'=>'clients','icon'=>'fa-handshake-angle','roles'=>['Administrator','Sales Officer','Finance Officer','Staff'],'group'=>'Management'],
-    ['label'=>'Suppliers','route'=>'supplier','icon'=>'fa-truck-fast','roles'=>['Administrator','Procurement Officer','Store Officer'],'group'=>'Management'],
-    ['label'=>'Users','route'=>'users','icon'=>'fa-users','roles'=>['Administrator','Director','Finance Officer'],'group'=>'Management'],
-    ['label'=>'GPS Devices','route'=>'gps','icon'=>'fa-location-dot','roles'=>['Administrator','Technician','Store Officer'],'group'=>'Management'],
-    ['label'=>'Accounting','route'=>'accounting','icon'=>'fa-file-invoice-dollar','roles'=>['Administrator','Finance Officer'],'group'=>'Operations'],
-    ['label'=>'Purchases','route'=>'purchases','icon'=>'fa-cart-shopping','roles'=>['Administrator','Procurement Officer','Store Officer'],'group'=>'Operations'],
-    ['label'=>'Sales','route'=>'sales','icon'=>'fa-chart-line','roles'=>['Administrator','Sales Officer'],'group'=>'Operations'],
-    ['label'=>'Requisitions','route'=>'requisition','icon'=>'fa-clipboard-list','roles'=>['Administrator','Procurement Officer','Store Officer'],'group'=>'Operations'],
-    ['label'=>'Reports','route'=>'reports','icon'=>'fa-file-lines','roles'=>['Administrator','Finance Officer','Director'],'group'=>'Operations'],
-    ['label'=>'Notifications','route'=>'notification','icon'=>'fa-bell','roles'=>['Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','Staff'],'group'=>'Support'],
-    ['label'=>'Settings','route'=>'settings','icon'=>'fa-gear','roles'=>['Administrator','Director'],'group'=>'Support'],
-    ['label'=>'Permissions','route'=>'permissions','icon'=>'fa-shield-halved','roles'=>['Administrator'],'group'=>'Support'],
-];
 $permissionModel = new Permission();
 $permissionModel->ensureModulePermissions();
 $customModules = $permissionModel->modulesForRole($role);
+$navModules = [
+    ['label'=>'Dashboard','route'=>'dashboard','icon'=>'fa-gauge-high','roles'=>['Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','Staff'],'group'=>'Workspace'],
+    ['label'=>'Permissions','route'=>'permissions','icon'=>'fa-shield-halved','roles'=>['Administrator'],'group'=>'Support'],
+];
+foreach ($permissionModel->moduleDefinitions() as $module) {
+    $navModules[] = [
+        'label' => $module['label'],
+        'route' => $module['route'],
+        'icon' => $module['icon'],
+        'roles' => $module['default_roles'],
+        'group' => $module['group'],
+    ];
+}
 $grouped = [];
 foreach ($navModules as $module) {
     if (!in_array($role, $module['roles'], true)) continue;
-    if ($module['route'] !== 'permissions' && $customModules && !in_array($module['route'], $customModules, true)) continue;
+    if ($module['route'] !== 'dashboard' && $module['route'] !== 'permissions' && $customModules && !in_array($module['route'], $customModules, true)) continue;
     $grouped[$module['group']][] = $module;
 }
 $user = currentUser() ?? [];

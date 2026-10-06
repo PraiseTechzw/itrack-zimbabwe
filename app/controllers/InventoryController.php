@@ -26,7 +26,11 @@ class InventoryController extends Controller
                 $this->view('inventory/form', ['error' => 'Invalid security token']);
                 return;
             }
-            $this->productModel->create($_POST);
+            $productName = trim((string) ($_POST['name'] ?? ''));
+            $productId = (int) $this->productModel->create($_POST);
+            if ($productId > 0 && (int) ($_POST['opening_stock'] ?? 0) <= (int) ($_POST['reorder_level'] ?? 0)) {
+                notifyTeam(['Administrator', 'Store Officer', 'Procurement Officer'], 'Low stock alert', 'Product ' . $productName . ' is at or below its reorder level.');
+            }
             $this->redirect('/index.php?controller=inventory');
         }
 
@@ -47,7 +51,11 @@ class InventoryController extends Controller
                 $this->view('inventory/form', ['product' => $product, 'error' => 'Invalid security token']);
                 return;
             }
+            $productName = trim((string) ($_POST['name'] ?? ''));
             $this->productModel->update($id, $_POST);
+            if ((int) ($_POST['opening_stock'] ?? 0) <= (int) ($_POST['reorder_level'] ?? 0)) {
+                notifyTeam(['Administrator', 'Store Officer', 'Procurement Officer'], 'Low stock alert', 'Product ' . $productName . ' is at or below its reorder level.');
+            }
             $this->redirect('/index.php?controller=inventory');
         }
 

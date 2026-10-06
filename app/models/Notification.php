@@ -66,6 +66,40 @@ class Notification extends Model
         return (int) ($this->fetchOne($sql, $params)['total'] ?? 0);
     }
 
+    public function unreadForUser(?int $userId = null): array
+    {
+        if ($userId === null) {
+            return [];
+        }
+
+        return $this->fetchAll(
+            'SELECT * FROM notifications WHERE user_id = :user_id AND is_read = 0 ORDER BY created_at DESC',
+            [':user_id' => $userId]
+        );
+    }
+
+    public function markRead(?int $userId = null, array $ids = []): void
+    {
+        if ($userId === null) {
+            return;
+        }
+
+        $params = [':user_id' => $userId];
+        $where = ' WHERE user_id = :user_id AND is_read = 0';
+
+        if ($ids !== []) {
+            $placeholderMap = [];
+            foreach ($ids as $index => $id) {
+                $placeholder = ':id_' . $index;
+                $placeholderMap[] = $placeholder;
+                $params[$placeholder] = (int) $id;
+            }
+            $where .= ' AND id IN (' . implode(', ', $placeholderMap) . ')';
+        }
+
+        $this->execute('UPDATE notifications SET is_read = 1' . $where, $params);
+    }
+
     public function countAll(?int $userId = null): int
     {
         $sql = 'SELECT COUNT(*) AS total FROM notifications';

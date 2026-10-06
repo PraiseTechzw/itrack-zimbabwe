@@ -100,4 +100,40 @@ class NotificationController extends Controller
 
         $this->redirect('/index.php?controller=notification');
     }
+
+    public function apiList(): void
+    {
+        $this->requireLogin();
+        $userId = $_SESSION['user']['id'] ?? null;
+        $notifications = $this->notificationModel->unreadForUser($userId !== null ? (int) $userId : null);
+
+        $this->json([
+            'notifications' => array_map(static fn (array $notification): array => [
+                'id' => (int) ($notification['id'] ?? 0),
+                'title' => (string) ($notification['title'] ?? ''),
+                'message' => (string) ($notification['message'] ?? ''),
+                'created_at' => (string) ($notification['created_at'] ?? ''),
+            ], $notifications),
+            'count' => $this->notificationModel->unreadCount((int) $userId),
+        ]);
+    }
+
+    public function markRead(): void
+    {
+        $this->requireLogin();
+        $userId = $_SESSION['user']['id'] ?? null;
+        if ($userId === null) {
+            $this->json(['ok' => false]);
+            return;
+        }
+
+        $incomingIds = $_POST['ids'] ?? [];
+        $ids = is_array($incomingIds) ? array_map('intval', $incomingIds) : [];
+        $this->notificationModel->markRead((int) $userId, $ids);
+
+        $this->json([
+            'ok' => true,
+            'count' => $this->notificationModel->unreadCount((int) $userId),
+        ]);
+    }
 }

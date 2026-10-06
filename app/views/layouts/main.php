@@ -40,6 +40,16 @@
         .icon-button { width:38px; height:38px; display:grid; place-items:center; color:#64748b; border:1px solid var(--line); background:#fff; border-radius:11px; position:relative; }
         .icon-button:hover { color:var(--brand); border-color:#c9c5ff; background:#fafaff; }
         .notification-badge { position:absolute; width:7px; height:7px; background:#f15b5b; border-radius:50%; right:8px; top:7px; border:2px solid #fff; box-sizing:content-box; }
+        .notification-count { position:absolute; min-width:18px; height:18px; padding:0 5px; display:grid; place-items:center; border-radius:999px; background:#ef4444; color:#fff; font-size:10px; font-weight:800; right:-4px; top:-6px; border:2px solid #fff; }
+        .notification-toast-stack { position:fixed; right:22px; bottom:22px; z-index:1080; display:grid; gap:10px; width:min(390px, calc(100vw - 28px)); }
+        .notification-toast { display:grid; grid-template-columns:20px minmax(0, 1fr) 28px; align-items:start; gap:10px; padding:14px 12px; border:1px solid #d8e7df; border-left:4px solid #16845b; border-radius:8px; background:#fff; color:#20352c; box-shadow:0 10px 30px rgba(20,35,28,.16); font-size:13px; animation:notification-toast-in .18s ease-out; }
+        .notification-toast > i { color:#16845b; margin-top:2px; }
+        .notification-toast-error { border-color:#f0d4d4; border-left-color:#bd3f45; color:#49282a; }
+        .notification-toast-error > i { color:#bd3f45; }
+        .notification-toast-close { border:0; background:transparent; color:#6c7882; font-size:20px; line-height:1; padding:0; }
+        .notification-toast-close:hover { color:#17202a; }
+        @keyframes notification-toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        @media (prefers-reduced-motion: reduce) { .notification-toast { animation:none; } }
         .user-pill { display:flex; align-items:center; gap:9px; padding-left:8px; border-left:1px solid var(--line); }
         .user-pill span { font-size:12px; font-weight:700; color:#39465d; }
         .content-wrapper { padding:32px 34px 48px; max-width:1600px; }
@@ -100,9 +110,102 @@
         </main>
     </div>
 </div>
+<div class="notification-toast-stack" id="notification-toast-stack" aria-live="polite" aria-relevant="additions"></div>
 <script>
+    const notificationToastStack = document.getElementById('notification-toast-stack');
+    const notificationBadge = document.querySelector('[data-notification-badge]');
+    const notificationCount = document.querySelector('[data-notification-count]');
+
+    const updateBellState = (count) => {
+        const numericCount = Number(count || 0);
+        if (notificationBadge) {
+            notificationBadge.hidden = numericCount <= 0;
+        }
+        if (notificationCount) {
+            notificationCount.hidden = numericCount <= 0;
+            notificationCount.textContent = numericCount > 0 ? String(numericCount) : '';
+        }
+    };
+
+    const showNotificationToast = (title, message) => {
+        if (!notificationToastStack) return;
+        const toast = document.createElement('div');
+        toast.className = 'notification-toast';
+        toast.setAttribute('role', 'status');
+
+        const icon = document.createElement('i');
+        icon.className = 'fa-solid fa-bell';
+
+        const textWrap = document.createElement('div');
+        const heading = document.createElement('div');
+        heading.style.fontWeight = '800';
+        heading.style.marginBottom = '2px';
+        heading.textContent = title;
+
+        const bodyText = document.createElement('div');
+        bodyText.style.color = '#57647a';
+        bodyText.style.lineHeight = '1.45';
+        bodyText.textContent = message;
+
+        textWrap.appendChild(heading);
+        textWrap.appendChild(bodyText);
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'notification-toast-close';
+        closeButton.setAttribute('aria-label', 'Dismiss notification');
+        closeButton.textContent = '×';
+        closeButton.addEventListener('click', () => toast.remove());
+
+        toast.appendChild(icon);
+        toast.appendChild(textWrap);
+        toast.appendChild(closeButton);
+        notificationToastStack.appendChild(toast);
+        window.setTimeout(() => toast.remove(), 7000);
+    };
+
+    const requestDesktopPushPermission = async () => {
+        if (!('Notification' in window)) {
+            return;
+        }
+
+        if (Notification.permission === 'default') {
+            await Notification.requestPermission();
+        }
+    };
+
+    const showSystemPush = (title, message) => {
+        if (!('Notification' in window) || Notification.permission !== 'granted') {
+            return;
+        }
+        new Notification(title, { body: message, tag: 'itrack-system-notification' });
+    };
+
+    const loadNotifications = async () => {
+        try {
+            const response = await fetch('/index.php?controller=notification&action=apiList', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!response.ok) return;
+            const data = await response.json();
+            const items = Array.isArray(data.notifications) ? data.notifications : [];
+            updateBellState(data.count ?? items.length);
+
+            if (items.length > 0) {
+                items.slice(0, 4).forEach((item) => {
+                    showNotificationToast(item.title || 'System update', item.message || 'You have a new notification.');
+                    showSystemPush(item.title || 'System update', item.message || 'You have a new notification.');
+                });
+            }
+        } catch (error) {
+            console.warn('Notification fetch failed:', error);
+        }
+    };
+
     document.querySelector('.menu-toggle')?.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
     document.querySelectorAll('.sidebar .nav-link').forEach(link => link.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
+
+    updateBellState(document.querySelector('[data-notification-count]')?.textContent || 0);
+    requestDesktopPushPermission();
+    window.addEventListener('load', loadNotifications);
 </script>
 </body>
 </html>

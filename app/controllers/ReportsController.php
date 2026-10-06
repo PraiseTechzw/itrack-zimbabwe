@@ -23,6 +23,10 @@ class ReportsController extends Controller
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && $this->validateCsrf()) {
 			$this->model->create($_POST + ['generated_by' => $_SESSION['user']['id'] ?? null]);
+			$userId = (int) ($_SESSION['user']['id'] ?? 0);
+			if ($userId > 0) {
+				createNotification($userId, 'Report generated', 'A new report was generated successfully.');
+			}
 		}
 		$this->redirect('/index.php?controller=reports');
 	}

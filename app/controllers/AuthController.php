@@ -51,6 +51,10 @@ class AuthController extends Controller
                     ]);
                     $_SESSION['user'] = $user;
                     $_SESSION['user']['logged_in_at'] = date('Y-m-d H:i:s');
+                    $userId = (int) ($user['id'] ?? 0);
+                    if ($userId > 0) {
+                        createNotification($userId, 'Welcome back', 'You have successfully signed in to the iTrack dashboard.');
+                    }
                     $this->redirect('/dashboard.php');
                 }
 

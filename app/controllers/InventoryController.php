@@ -77,7 +77,7 @@ class InventoryController extends Controller
                 ]);
                 return;
             }
-            $productName = trim((string) ($_POST['name'] ?? ''));
+            $productName = trim((string) ($_POST['device_type'] ?? ''));
             $this->productModel->update($id, $_POST);
             $updatedProduct = $this->productModel->find($id);
             if ($updatedProduct !== null && (int) ($updatedProduct['opening_stock'] ?? 0) <= (int) ($updatedProduct['reorder_level'] ?? 0)) {

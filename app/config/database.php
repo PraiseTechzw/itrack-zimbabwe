@@ -115,7 +115,6 @@ class Database
             sku TEXT NOT NULL UNIQUE,
             imei TEXT UNIQUE,
             device_type TEXT NOT NULL DEFAULT 'Galileosky 7x',
-            serial TEXT,
             unit TEXT DEFAULT 'pcs',
             cost_price REAL DEFAULT 0,
             selling_price REAL DEFAULT 0,
@@ -470,9 +469,6 @@ class Database
         $existingColumns = array_column($columns, 'name');
         if (!in_array('device_type', $existingColumns, true)) {
             $pdo->exec("ALTER TABLE products ADD COLUMN device_type TEXT NOT NULL DEFAULT 'Galileosky 7x'");
-        }
-        if (!in_array('serial', $existingColumns, true)) {
-            $pdo->exec('ALTER TABLE products ADD COLUMN serial TEXT');
         }
     }
 

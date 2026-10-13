@@ -11,10 +11,6 @@
                 <form method="post" class="row g-3">
                     <?= $this->csrfField() ?>
                     <div class="col-md-6">
-                        <label class="form-label">Name</label>
-                        <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($product['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label" for="product-device-type">Device Type</label>
                         <select id="product-device-type" name="device_type" class="form-select" required>
                             <?php foreach (($deviceTypes ?? []) as $type): ?>
@@ -25,10 +21,6 @@
                     <div class="col-md-6">
                         <label class="form-label" for="product-imei">IMEI</label>
                         <input type="text" id="product-imei" name="imei" class="form-control" value="<?= htmlspecialchars($product['imei'] ?? '', ENT_QUOTES, 'UTF-8') ?>" inputmode="numeric" autocomplete="off" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="product-serial">Serial Number</label>
-                        <input type="text" id="product-serial" name="serial" class="form-control" value="<?= htmlspecialchars($product['serial'] ?? '', ENT_QUOTES, 'UTF-8') ?>" autocomplete="off">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Cost Price</label>

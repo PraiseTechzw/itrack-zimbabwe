@@ -10,6 +10,8 @@
                 <thead>
                     <tr>
                         <th>Device Name</th>
+                        <th>Device Type</th>
+                        <th>Package</th>
                         <th>IMEI</th>
                         <th>Serial</th>
                         <th>SIM</th>
@@ -22,6 +24,8 @@
                     <?php foreach ($devices as $device): ?>
                         <tr>
                             <td><?= htmlspecialchars($device['device_name'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($device['device_type'] ?? '—') ?></td>
+                            <td><?= htmlspecialchars($device['package_type'] ?? '—') ?></td>
                             <td><?= htmlspecialchars($device['imei'] ?? '') ?></td>
                             <td><?= htmlspecialchars($device['serial'] ?? '') ?></td>
                             <td><?= htmlspecialchars($device['sim_number'] ?? '') ?></td>

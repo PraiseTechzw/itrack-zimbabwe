@@ -38,6 +38,7 @@
                                     </td>
                                 <?php endforeach; ?>
                                 <td>
+                                    <?php if (($section ?? '') === 'invoices'): ?><a class="btn btn-sm btn-outline-primary" href="/index.php?controller=accounting&amp;action=invoicePrint&amp;id=<?= (int) ($item['id'] ?? 0) ?>">View / Print</a><?php endif; ?>
                                     <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=accounting&action=<?= htmlspecialchars($editAction ?? 'index') ?>&id=<?= (int) ($item['id'] ?? 0) ?>">Edit</a>
                                     <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=accounting&action=<?= htmlspecialchars($deleteAction ?? 'index') ?>&id=<?= (int) ($item['id'] ?? 0) ?>" onclick="return confirm('Delete this record?')">Delete</a>
                                 </td>

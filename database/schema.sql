@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS clients (
 CREATE TABLE IF NOT EXISTS gps_devices (
   id INT AUTO_INCREMENT PRIMARY KEY,
   device_name VARCHAR(150) NOT NULL,
+  device_type VARCHAR(80) NOT NULL DEFAULT 'Galileosky 7x',
+  package_type VARCHAR(100) NOT NULL DEFAULT 'Basic installation',
   imei VARCHAR(100) NOT NULL UNIQUE,
   serial VARCHAR(100),
   sim_number VARCHAR(50),
@@ -141,6 +143,8 @@ CREATE TABLE IF NOT EXISTS sales (
   sales_person_id INT NULL,
   sale_date DATE NOT NULL DEFAULT CURRENT_DATE,
   status VARCHAR(50) NOT NULL DEFAULT 'draft',
+  sale_type VARCHAR(80) NOT NULL DEFAULT 'speed_certificates_tracking',
+  package_type VARCHAR(80) NOT NULL DEFAULT 'basic_installation',
   total_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
@@ -165,10 +169,34 @@ CREATE TABLE IF NOT EXISTS invoices (
   due_date DATE NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'unpaid',
   total_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  currency VARCHAR(8) NOT NULL DEFAULT 'USD',
+  issue_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  reference_number VARCHAR(150),
+  sales_person VARCHAR(150),
+  customer_registered_name VARCHAR(200),
+  customer_trade_name VARCHAR(200),
+  customer_address TEXT,
+  customer_email VARCHAR(190),
+  customer_phone VARCHAR(80),
+  customer_tin VARCHAR(80),
+  customer_vat VARCHAR(80),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS invoice_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id INT NOT NULL,
+  quantity DECIMAL(12,3) NOT NULL DEFAULT 1,
+  hs_code VARCHAR(40),
+  description VARCHAR(255) NOT NULL,
+  unit_price DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  vat_rate DECIMAL(6,3) NOT NULL DEFAULT 0.000,
+  vat_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  total_excl DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  total_incl DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+  FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
 CREATE TABLE IF NOT EXISTS payments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   invoice_id INT NULL,
@@ -224,6 +252,7 @@ CREATE TABLE IF NOT EXISTS requisitions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   requested_by INT NULL,
   department VARCHAR(100) NOT NULL DEFAULT 'General',
+  purpose VARCHAR(180) NOT NULL DEFAULT '',
   requested_date DATE NOT NULL DEFAULT CURRENT_DATE,
   status VARCHAR(50) NOT NULL DEFAULT 'pending',
   total_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,

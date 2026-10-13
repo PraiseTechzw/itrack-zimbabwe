@@ -280,9 +280,13 @@
     document.querySelector('.menu-toggle')?.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
     document.querySelectorAll('.sidebar .nav-link').forEach(link => link.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
 
-    updateBellState(document.querySelector('[data-notification-count]')?.textContent || 0);
-    requestDesktopPushPermission();
-    window.addEventListener('load', loadNotifications);
+    const routeController = new URLSearchParams(location.search).get('controller');
+    const dashboardView = location.pathname.endsWith('/dashboard.php') || routeController === 'dashboard' || (!routeController && location.pathname.endsWith('/index.php'));
+    updateBellState(dashboardView ? (document.querySelector('[data-notification-count]')?.textContent || 0) : 0);
+    if (dashboardView) {
+        requestDesktopPushPermission();
+        window.addEventListener('load', loadNotifications);
+    }
 </script>
 <?php endif; ?>
 </body>

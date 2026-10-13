@@ -24,7 +24,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Role</label>
                         <select name="role" class="form-select">
-                            <?php foreach (['Staff','Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician'] as $role): ?><option <?= ($user['role'] ?? 'Staff') === $role ? 'selected' : '' ?>><?= htmlspecialchars($role) ?></option><?php endforeach; ?>
+                            <?php foreach (['Staff','Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','IT Support'] as $role): ?><option <?= ($user['role'] ?? 'Staff') === $role ? 'selected' : '' ?>><?= htmlspecialchars($role) ?></option><?php endforeach; ?>
                         </select>
                     </div>
                     <div class="col-md-6">

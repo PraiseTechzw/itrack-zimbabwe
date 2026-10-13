@@ -33,6 +33,8 @@ class GPSController extends Controller
                     'mode' => 'create',
                     'error' => 'Invalid security token',
                     'device' => $_POST,
+                    'deviceTypes' => GPSDevice::deviceTypes(),
+                    'packageTypes' => GPSDevice::packageTypes(),
                 ]);
                 return;
             }
@@ -45,6 +47,8 @@ class GPSController extends Controller
             'title' => 'Create GPS Device',
             'mode' => 'create',
             'device' => [],
+            'deviceTypes' => GPSDevice::deviceTypes(),
+            'packageTypes' => GPSDevice::packageTypes(),
         ]);
     }
 
@@ -65,6 +69,8 @@ class GPSController extends Controller
                     'mode' => 'edit',
                     'error' => 'Invalid security token',
                     'device' => $device,
+                    'deviceTypes' => GPSDevice::deviceTypes(),
+                    'packageTypes' => GPSDevice::packageTypes(),
                 ]);
                 return;
             }
@@ -77,6 +83,8 @@ class GPSController extends Controller
             'title' => 'Edit GPS Device',
             'mode' => 'edit',
             'device' => $device,
+            'deviceTypes' => GPSDevice::deviceTypes(),
+            'packageTypes' => GPSDevice::packageTypes(),
         ]);
     }
 

@@ -11,7 +11,16 @@
                     <?= $this->csrfField() ?>
                     <div class="col-md-6">
                         <label class="form-label">Device Name</label>
-                        <input type="text" name="device_name" class="form-control" value="<?= htmlspecialchars($device['device_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                        <input type="text" name="device_name" class="form-control mb-2" value="<?= htmlspecialchars($device['device_name'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="Device name" required>
+                        <select name="device_type" class="form-select" aria-label="GPS device type">
+                            <?php foreach (($deviceTypes ?? []) as $type): ?><option value="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>" <?= ($device['device_type'] ?? 'Galileosky 7x') === $type ? 'selected' : '' ?>><?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Package Type</label>
+                        <select name="package_type" class="form-select">
+                            <?php foreach (($packageTypes ?? []) as $package): ?><option value="<?= htmlspecialchars($package, ENT_QUOTES, 'UTF-8') ?>" <?= ($device['package_type'] ?? 'Basic installation') === $package ? 'selected' : '' ?>><?= htmlspecialchars($package, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">IMEI</label>

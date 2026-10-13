@@ -20,13 +20,12 @@ class Permission extends ModuleModel
             ['key'=>'clients','route'=>'clients','label'=>'Clients','description'=>'Customer accounts and client organizations.','icon'=>'fa-handshake-angle','group'=>'Management','default_roles'=>['Administrator','Sales Officer','Finance Officer','Staff']],
             ['key'=>'supplier','route'=>'supplier','label'=>'Suppliers','description'=>'Supplier records and procurement partners.','icon'=>'fa-truck-fast','group'=>'Management','default_roles'=>['Administrator','Procurement Officer','Store Officer']],
             ['key'=>'users','route'=>'users','label'=>'Users','description'=>'Staff accounts, roles, and user administration.','icon'=>'fa-users','group'=>'Management','default_roles'=>['Administrator','Director','Finance Officer']],
-            ['key'=>'gps','route'=>'gps','label'=>'GPS Devices','description'=>'Field trackers and device monitoring.','icon'=>'fa-location-dot','group'=>'Management','default_roles'=>['Administrator','Technician','Store Officer']],
+            ['key'=>'gps','route'=>'gps','label'=>'GPS Devices','description'=>'Field trackers and device monitoring.','icon'=>'fa-location-dot','group'=>'Management','default_roles'=>['Administrator','Technician','Store Officer','IT Support']],
             ['key'=>'accounting','route'=>'accounting','label'=>'Accounting','description'=>'Cash book, invoices, expenses, and payments.','icon'=>'fa-file-invoice-dollar','group'=>'Operations','default_roles'=>['Administrator','Finance Officer']],
             ['key'=>'purchases','route'=>'purchases','label'=>'Purchases','description'=>'Purchase orders and supplier workflows.','icon'=>'fa-cart-shopping','group'=>'Operations','default_roles'=>['Administrator','Procurement Officer','Store Officer']],
             ['key'=>'sales','route'=>'sales','label'=>'Sales','description'=>'Sales records and customer transactions.','icon'=>'fa-chart-line','group'=>'Operations','default_roles'=>['Administrator','Sales Officer']],
             ['key'=>'requisition','route'=>'requisition','label'=>'Requisitions','description'=>'Internal requests and approval workflows.','icon'=>'fa-clipboard-list','group'=>'Operations','default_roles'=>['Administrator','Procurement Officer','Store Officer']],
             ['key'=>'reports','route'=>'reports','label'=>'Reports','description'=>'Operational and financial reporting.','icon'=>'fa-file-lines','group'=>'Operations','default_roles'=>['Administrator','Finance Officer','Director']],
-            ['key'=>'notification','route'=>'notification','label'=>'Notifications','description'=>'Internal alerts and team communication.','icon'=>'fa-bell','group'=>'Support','default_roles'=>['Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','Staff']],
             ['key'=>'settings','route'=>'settings','label'=>'Settings','description'=>'Application configuration and administration.','icon'=>'fa-gear','group'=>'Support','default_roles'=>['Administrator','Director']],
         ];
     }
@@ -65,7 +64,7 @@ class Permission extends ModuleModel
     {
         $rows = $this->fetchAll('SELECT DISTINCT role FROM users WHERE role IS NOT NULL AND role <> "" ORDER BY role');
         $roles = array_map(fn(array $row): string => $row['role'] === 'admin' ? 'Administrator' : $row['role'], $rows);
-        foreach (['Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','Staff'] as $default) {
+        foreach (['Administrator','Director','Finance Officer','Procurement Officer','Store Officer','Sales Officer','Technician','IT Support','Staff'] as $default) {
             if (!in_array($default, $roles, true)) $roles[] = $default;
         }
         return array_values(array_unique($roles));

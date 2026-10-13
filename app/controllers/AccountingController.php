@@ -126,6 +126,8 @@ class AccountingController extends Controller
             'items' => $this->invoiceModel->all(),
             'columns' => [
                 ['label' => 'Invoice #', 'key' => 'invoice_number'],
+                ['label' => 'Currency', 'key' => 'currency'],
+                ['label' => 'Customer', 'key' => 'customer_registered_name'],
                 ['label' => 'Sale ID', 'key' => 'sale_id'],
                 ['label' => 'Due Date', 'key' => 'due_date'],
                 ['label' => 'Status', 'key' => 'status'],
@@ -137,41 +139,60 @@ class AccountingController extends Controller
         ]);
     }
 
+    private function invoiceForm(array $record, string $mode, ?string $error = null, ?int $recordId = null): void
+    {
+        $this->view('accounting/invoice-form', [
+            'title' => $mode === 'create' ? 'Create Fiscal Tax Invoice' : 'Edit Fiscal Tax Invoice',
+            'mode' => $mode,
+            'record' => $record,
+            'sales' => $mode === 'create' ? $this->invoiceModel->availableSales() : [],
+            'error' => $error,
+            'recordId' => $recordId,
+        ]);
+    }
     public function invoiceCreate(): void
     {
         $this->requireAccountingAccess();
         $this->csrfToken();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!$this->validateCsrf()) {
-                $this->view('accounting/form', ['title' => 'Create Invoice', 'mode' => 'create', 'section' => 'invoices', 'resourceName' => 'Invoice', 'fields' => $this->getInvoiceFields(), 'record' => $_POST, 'error' => 'Invalid security token', 'submitAction' => 'invoiceCreate']);
+            if (!$this->validateCsrf()) { $this->invoiceForm($_POST, 'create', 'Invalid security token.'); return; }
+            try {
+                $this->invoiceModel->create($_POST + ['sales_person' => (string) ($_SESSION['user']['name'] ?? '')]);
+                $this->redirect('/index.php?controller=accounting&action=invoices');
+            } catch (InvalidArgumentException $exception) {
+                $this->invoiceForm($_POST, 'create', $exception->getMessage());
                 return;
             }
-            $this->invoiceModel->create($_POST);
-            $this->redirect('/index.php?controller=accounting&action=invoices');
         }
-        $this->view('accounting/form', ['title' => 'Create Invoice', 'mode' => 'create', 'section' => 'invoices', 'resourceName' => 'Invoice', 'fields' => $this->getInvoiceFields(), 'record' => [], 'submitAction' => 'invoiceCreate']);
+        $this->invoiceForm(['issue_date' => date('Y-m-d'), 'due_date' => date('Y-m-d', strtotime('+14 days')), 'currency' => 'USD', 'status' => 'unpaid', 'sales_person' => (string) ($_SESSION['user']['name'] ?? ''), 'items' => [['quantity' => 1, 'hs_code' => '99001000', 'description' => '', 'unit_price' => '', 'vat_rate' => '15.5']]], 'create');
     }
-
     public function invoiceEdit(): void
     {
         $this->requireAccountingAccess();
         $id = $this->sanitizeInt($_GET['id'] ?? 0);
         $this->csrfToken();
         $record = $this->invoiceModel->find($id);
-        if (!$record) {
-            $this->redirect('/index.php?controller=accounting&action=invoices');
-        }
+        if (!$record) { $this->redirect('/index.php?controller=accounting&action=invoices'); return; }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!$this->validateCsrf()) {
-                $this->view('accounting/form', ['title' => 'Edit Invoice', 'mode' => 'edit', 'section' => 'invoices', 'resourceName' => 'Invoice', 'fields' => $this->getInvoiceFields(), 'record' => $record, 'error' => 'Invalid security token', 'submitAction' => 'invoiceEdit', 'recordId' => $id]);
+            if (!$this->validateCsrf()) { $this->invoiceForm($_POST, 'edit', 'Invalid security token.', $id); return; }
+            try {
+                $this->invoiceModel->update($id, $_POST + ['sales_person' => (string) ($_SESSION['user']['name'] ?? '')]);
+                $this->redirect('/index.php?controller=accounting&action=invoices');
+            } catch (InvalidArgumentException $exception) {
+                $this->invoiceForm($_POST, 'edit', $exception->getMessage(), $id);
                 return;
             }
-            $this->invoiceModel->update($id, $_POST);
-            $this->redirect('/index.php?controller=accounting&action=invoices');
         }
-        $this->view('accounting/form', ['title' => 'Edit Invoice', 'mode' => 'edit', 'section' => 'invoices', 'resourceName' => 'Invoice', 'fields' => $this->getInvoiceFields(), 'record' => $record, 'submitAction' => 'invoiceEdit', 'recordId' => $id]);
+        $this->invoiceForm($record, 'edit', null, $id);
     }
-
+    public function invoicePrint(): void
+    {
+        $this->requireAccountingAccess();
+        $id = $this->sanitizeInt($_GET['id'] ?? 0);
+        $invoice = $this->invoiceModel->details($id);
+        if (!$invoice) { $this->redirect('/index.php?controller=accounting&action=invoices'); return; }
+        $this->view('accounting/invoice-print', ['title' => 'Fiscal Tax Invoice ' . $invoice['invoice_number'], 'invoice' => $invoice]);
+    }
     public function invoiceDelete(): void
     {
         $this->requireAccountingAccess();

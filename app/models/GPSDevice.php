@@ -4,6 +4,14 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class GPSDevice extends Model
 {
+    public static function deviceTypes(): array
+    {
+        return ['Galileosky 7x', 'Teltonika FMB920', 'Smart S-24xx', 'Teltonika FMC920', 'Teltonika FMB140', 'Teltonika FMC130', 'Queclink GV300W', 'Concox GT06N', 'Ruptela Trace5', 'Howen Hero-ME40'];
+    }
+    public static function packageTypes(): array
+    {
+        return ['Basic installation', 'Basic FLS + camera installation', 'Basic + FLS', 'Basic installation + tracking', 'Basic installation + camera', 'FLS installation only', 'Camera installation only', 'Tracking + FLS + camera', 'Device supply only', 'Maintenance / inspection'];
+    }
     public function all(): array
     {
         return $this->fetchAll('SELECT * FROM gps_devices ORDER BY device_name ASC');
@@ -16,9 +24,11 @@ class GPSDevice extends Model
 
     public function create(array $data): string
     {
-        $sql = 'INSERT INTO gps_devices (device_name, imei, serial, sim_number, status, installed_at, created_at) VALUES (:device_name, :imei, :serial, :sim_number, :status, :installed_at, CURRENT_TIMESTAMP)';
+        $sql = 'INSERT INTO gps_devices (device_name, device_type, package_type, imei, serial, sim_number, status, installed_at, created_at) VALUES (:device_name, :device_type, :package_type, :imei, :serial, :sim_number, :status, :installed_at, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':device_name' => trim((string) ($data['device_name'] ?? '')),
+            ':device_type' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
+            ':package_type' => trim((string) ($data['package_type'] ?? 'Basic installation')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
             ':serial' => trim((string) ($data['serial'] ?? '')),
             ':sim_number' => trim((string) ($data['sim_number'] ?? '')),
@@ -30,9 +40,11 @@ class GPSDevice extends Model
 
     public function update(int $id, array $data): void
     {
-        $sql = 'UPDATE gps_devices SET device_name = :device_name, imei = :imei, serial = :serial, sim_number = :sim_number, status = :status, installed_at = :installed_at WHERE id = :id';
+        $sql = 'UPDATE gps_devices SET device_name = :device_name, device_type = :device_type, package_type = :package_type, imei = :imei, serial = :serial, sim_number = :sim_number, status = :status, installed_at = :installed_at WHERE id = :id';
         $this->execute($sql, [
             ':device_name' => trim((string) ($data['device_name'] ?? '')),
+            ':device_type' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
+            ':package_type' => trim((string) ($data['package_type'] ?? 'Basic installation')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
             ':serial' => trim((string) ($data['serial'] ?? '')),
             ':sim_number' => trim((string) ($data['sim_number'] ?? '')),

@@ -15,7 +15,9 @@ if ($summaryKey !== null) {
         if (is_numeric($row[$summaryKey] ?? null)) $summaryTotal += (float) $row[$summaryKey];
     }
 }
-$baseUrl = '/index.php?controller=reports&action=export&type=' . urlencode((string) ($reportType ?? 'Sales summary'));
+$period = (string) ($period ?? 'all');
+$reportPeriod = (string) ($reportPeriod ?? 'All available records');
+$baseUrl = '/index.php?controller=reports&action=export&type=' . urlencode((string) ($reportType ?? 'Sales summary')) . '&period=' . urlencode($period);
 ?>
 <div class="report-toolbar d-flex justify-content-between align-items-center gap-2 flex-wrap mb-4">
     <a class="btn btn-outline-secondary" href="/index.php?controller=reports"><i class="fa-solid fa-arrow-left me-2"></i>Back to reports</a>
@@ -34,7 +36,7 @@ $baseUrl = '/index.php?controller=reports&action=export&type=' . urlencode((stri
         </div>
         <div class="report-date">
             <span>GENERATED</span><strong><?= $escape($generatedAt ?? date('Y-m-d H:i T')) ?></strong>
-            <span>REPORT PERIOD</span><strong>All available records</strong>
+            <span>REPORT PERIOD</span><strong><?= $escape($reportPeriod) ?></strong>
         </div>
     </header>
     <section class="report-summary" aria-label="Report summary">

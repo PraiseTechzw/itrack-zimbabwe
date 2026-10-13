@@ -4,14 +4,45 @@ class Report extends ModuleModel {
     public function all(): array { return $this->fetchAll("SELECT r.*, u.name AS generated_by_name FROM reports r LEFT JOIN users u ON u.id=r.generated_by ORDER BY r.id DESC"); }
     public function create(array $data): string { $this->execute('INSERT INTO reports (report_name, report_type, filters, generated_by) VALUES (?, ?, ?, ?)', [trim($data['report_name']??''), trim($data['report_type']??'summary'), json_encode($data['filters']??[]), (int)($data['generated_by']??0) ?: null]); return $this->lastInsertId(); }
 
-    public function exportRows(string $type): array
+    private function periodBounds(string $period): ?array
     {
+        $today = new DateTimeImmutable('today');
+        return match ($period) {
+            'today' => [$today, $today->modify('+1 day')],
+            'last_7_days' => [$today->modify('-6 days'), $today->modify('+1 day')],
+            'last_30_days' => [$today->modify('-29 days'), $today->modify('+1 day')],
+            'this_month' => [$today->modify('first day of this month'), $today->modify('first day of next month')],
+            default => null,
+        };
+    }
+
+    private function periodCondition(string $column, string $period): array
+    {
+        $bounds = $this->periodBounds($period);
+        if ($bounds === null) {
+            return ['', []];
+        }
+        return [
+            ' WHERE ' . $column . ' >= ? AND ' . $column . ' < ?',
+            [$bounds[0]->format('Y-m-d'), $bounds[1]->format('Y-m-d')],
+        ];
+    }
+
+    public function exportRows(string $type, string $period = 'all'): array
+    {
+        [$condition, $params] = match ($type) {
+            'Inventory valuation' => ['', []],
+            'Receivables' => $this->periodCondition('i.due_date', $period),
+            'GPS activity' => $this->periodCondition('installed_at', $period),
+            'Cash book' => $this->periodCondition('entry_date', $period),
+            default => $this->periodCondition('s.sale_date', $period),
+        };
         return match ($type) {
             'Inventory valuation' => $this->fetchAll('SELECT p.name, p.sku, COALESCE(SUM(s.quantity),0) AS quantity_on_hand, p.cost_price, COALESCE(SUM(s.quantity),0)*p.cost_price AS stock_value FROM products p LEFT JOIN stocks s ON s.product_id=p.id GROUP BY p.id ORDER BY p.name'),
-            'Receivables' => $this->fetchAll('SELECT i.invoice_number, c.company_name AS client, i.due_date, i.status, i.total_amount FROM invoices i LEFT JOIN sales s ON s.id=i.sale_id LEFT JOIN clients c ON c.id=s.client_id ORDER BY i.due_date'),
-            'GPS activity' => $this->fetchAll('SELECT device_name, device_type, imei, serial, status, installed_at FROM gps_devices ORDER BY device_name'),
-            'Cash book' => $this->fetchAll('SELECT entry_date, description, debit, credit, balance FROM cash_book ORDER BY entry_date DESC'),
-            default => $this->fetchAll('SELECT s.sale_date, c.company_name AS client, s.sale_type, s.package_type, s.status, s.total_amount FROM sales s LEFT JOIN clients c ON c.id=s.client_id ORDER BY s.sale_date DESC'),
+            'Receivables' => $this->fetchAll('SELECT i.invoice_number, c.company_name AS client, i.due_date, i.status, i.total_amount FROM invoices i LEFT JOIN sales s ON s.id=i.sale_id LEFT JOIN clients c ON c.id=s.client_id' . $condition . ' ORDER BY i.due_date', $params),
+            'GPS activity' => $this->fetchAll('SELECT device_name, device_type, imei, serial, status, installed_at FROM gps_devices' . $condition . ' ORDER BY device_name', $params),
+            'Cash book' => $this->fetchAll('SELECT entry_date, description, debit, credit, balance FROM cash_book' . $condition . ' ORDER BY entry_date DESC', $params),
+            default => $this->fetchAll('SELECT s.sale_date, c.company_name AS client, s.sale_type, s.package_type, s.status, s.total_amount FROM sales s LEFT JOIN clients c ON c.id=s.client_id' . $condition . ' ORDER BY s.sale_date DESC', $params),
         };
     }
     public function aiInsightsData(): array

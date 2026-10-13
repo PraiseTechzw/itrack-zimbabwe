@@ -26,14 +26,6 @@
                         <label class="form-label">Selling Price</label>
                         <input type="number" step="0.01" name="selling_price" class="form-control" value="<?= htmlspecialchars((string) ($product['selling_price'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Opening Stock</label>
-                        <input type="number" name="opening_stock" class="form-control" value="<?= htmlspecialchars((string) ($product['opening_stock'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Reorder Level</label>
-                        <input type="number" name="reorder_level" class="form-control" value="<?= htmlspecialchars((string) ($product['reorder_level'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
-                    </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit"><?= $mode === 'edit' ? 'Save Changes' : 'Register Device' ?></button>
                         <a class="btn btn-outline-secondary ms-2" href="/index.php?controller=inventory">Back to list</a>

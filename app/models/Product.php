@@ -16,7 +16,7 @@ class Product extends Model
 
     public function create(array $data): string
     {
-        $sql = 'INSERT INTO products (name, sku, imei, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :imei, :imei, :category_id, :unit, :cost_price, :selling_price, :opening_stock, :reorder_level, :status, CURRENT_TIMESTAMP)';
+        $sql = 'INSERT INTO products (name, sku, imei, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :imei, :imei, :category_id, :unit, :cost_price, :selling_price, 1, 0, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':name' => trim((string) ($data['name'] ?? '')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
@@ -24,8 +24,6 @@ class Product extends Model
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),
             ':cost_price' => (float) ($data['cost_price'] ?? 0),
             ':selling_price' => (float) ($data['selling_price'] ?? 0),
-            ':opening_stock' => (int) ($data['opening_stock'] ?? 0),
-            ':reorder_level' => (int) ($data['reorder_level'] ?? 0),
             ':status' => trim((string) ($data['status'] ?? 'active')),
         ]);
         return $this->lastInsertId();
@@ -33,7 +31,7 @@ class Product extends Model
 
     public function update(int $id, array $data): void
     {
-        $sql = 'UPDATE products SET name = :name, sku = :imei, imei = :imei, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, opening_stock = :opening_stock, reorder_level = :reorder_level, status = :status WHERE id = :id';
+        $sql = 'UPDATE products SET name = :name, imei = :imei, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, status = :status WHERE id = :id';
         $this->execute($sql, [
             ':name' => trim((string) ($data['name'] ?? '')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
@@ -41,8 +39,6 @@ class Product extends Model
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),
             ':cost_price' => (float) ($data['cost_price'] ?? 0),
             ':selling_price' => (float) ($data['selling_price'] ?? 0),
-            ':opening_stock' => (int) ($data['opening_stock'] ?? 0),
-            ':reorder_level' => (int) ($data['reorder_level'] ?? 0),
             ':status' => trim((string) ($data['status'] ?? 'active')),
             ':id' => $id,
         ]);

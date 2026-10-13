@@ -15,7 +15,7 @@
                         <th>Unit</th>
                         <th>Cost Price</th>
                         <th>Selling Price</th>
-                        <th>Opening Stock</th>
+                        <th>Units</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -23,7 +23,7 @@
                 <?php foreach ($products as $product): ?>
                     <tr>
                         <td><?= htmlspecialchars($product['name'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($product['imei'] ?? '') ?></td>
+                        <td><?= htmlspecialchars(($product['imei'] ?? '') !== '' ? $product['imei'] : 'IMEI not assigned') ?></td>
                         <td><?= htmlspecialchars($product['unit'] ?? '') ?></td>
                         <td>$<?= number_format((float) ($product['cost_price'] ?? 0), 2) ?></td>
                         <td>$<?= number_format((float) ($product['selling_price'] ?? 0), 2) ?></td>

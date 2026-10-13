@@ -36,11 +36,7 @@ class InventoryController extends Controller
                 ]);
                 return;
             }
-            $productName = trim((string) ($_POST['name'] ?? ''));
-            $productId = (int) $this->productModel->create($_POST);
-            if ($productId > 0 && (int) ($_POST['opening_stock'] ?? 0) <= (int) ($_POST['reorder_level'] ?? 0)) {
-                notifyTeam(['Administrator', 'Store Officer', 'Procurement Officer'], 'Low stock alert', 'Product ' . $productName . ' is at or below its reorder level.');
-            }
+            $this->productModel->create($_POST);
             $this->redirect('/index.php?controller=inventory');
         }
 
@@ -73,7 +69,8 @@ class InventoryController extends Controller
             }
             $productName = trim((string) ($_POST['name'] ?? ''));
             $this->productModel->update($id, $_POST);
-            if ((int) ($_POST['opening_stock'] ?? 0) <= (int) ($_POST['reorder_level'] ?? 0)) {
+            $updatedProduct = $this->productModel->find($id);
+            if ($updatedProduct !== null && (int) ($updatedProduct['opening_stock'] ?? 0) <= (int) ($updatedProduct['reorder_level'] ?? 0)) {
                 notifyTeam(['Administrator', 'Store Officer', 'Procurement Officer'], 'Low stock alert', 'Product ' . $productName . ' is at or below its reorder level.');
             }
             $this->redirect('/index.php?controller=inventory');

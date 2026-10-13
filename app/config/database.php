@@ -114,6 +114,8 @@ class Database
             name TEXT NOT NULL,
             sku TEXT NOT NULL UNIQUE,
             imei TEXT UNIQUE,
+            device_type TEXT NOT NULL DEFAULT 'Galileosky 7x',
+            serial TEXT,
             unit TEXT DEFAULT 'pcs',
             cost_price REAL DEFAULT 0,
             selling_price REAL DEFAULT 0,
@@ -124,6 +126,7 @@ class Database
             FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
         )");
         self::ensureProductImei($pdo);
+        self::ensureProductDeviceDetails($pdo);
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS stocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -459,6 +462,18 @@ class Database
             $pdo->exec('ALTER TABLE products ADD COLUMN imei TEXT');
         }
         $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS products_imei_unique ON products(imei) WHERE imei IS NOT NULL AND imei <> ''");
+    }
+
+    private static function ensureProductDeviceDetails(PDO $pdo): void
+    {
+        $columns = $pdo->query('PRAGMA table_info(products)')->fetchAll();
+        $existingColumns = array_column($columns, 'name');
+        if (!in_array('device_type', $existingColumns, true)) {
+            $pdo->exec("ALTER TABLE products ADD COLUMN device_type TEXT NOT NULL DEFAULT 'Galileosky 7x'");
+        }
+        if (!in_array('serial', $existingColumns, true)) {
+            $pdo->exec('ALTER TABLE products ADD COLUMN serial TEXT');
+        }
     }
 
     public static function beginTransaction(): bool

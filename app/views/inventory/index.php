@@ -11,7 +11,9 @@
                 <thead>
                     <tr>
                         <th>Device / Product</th>
+                        <th>Device Type</th>
                         <th>IMEI</th>
+                        <th>Serial Number</th>
                         <th>Unit</th>
                         <th>Cost Price</th>
                         <th>Selling Price</th>
@@ -23,7 +25,9 @@
                 <?php foreach ($products as $product): ?>
                     <tr>
                         <td><?= htmlspecialchars($product['name'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($product['device_type'] ?? '—') ?></td>
                         <td><?= htmlspecialchars(($product['imei'] ?? '') !== '' ? $product['imei'] : 'IMEI not assigned') ?></td>
+                        <td><?= htmlspecialchars(($product['serial'] ?? '') !== '' ? $product['serial'] : '—') ?></td>
                         <td><?= htmlspecialchars($product['unit'] ?? '') ?></td>
                         <td>$<?= number_format((float) ($product['cost_price'] ?? 0), 2) ?></td>
                         <td>$<?= number_format((float) ($product['selling_price'] ?? 0), 2) ?></td>

@@ -21,18 +21,23 @@ class InventoryController extends Controller
     public function create(): void
     {
         $this->requireLogin();
+        $deviceTypes = Product::deviceTypes();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
-                $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'product' => $_POST, 'error' => 'Invalid security token']);
+                $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'product' => $_POST, 'deviceTypes' => $deviceTypes, 'error' => 'Invalid security token']);
                 return;
             }
             $imei = trim((string) ($_POST['imei'] ?? ''));
-            if ($imei === '' || $this->productModel->imeiExists($imei)) {
+            $deviceType = trim((string) ($_POST['device_type'] ?? ''));
+            if (!in_array($deviceType, $deviceTypes, true) || $imei === '' || $this->productModel->imeiExists($imei)) {
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
                     'product' => $_POST,
-                    'error' => $imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.',
+                    'deviceTypes' => $deviceTypes,
+                    'error' => !in_array($deviceType, $deviceTypes, true)
+                        ? 'Choose a valid device type.'
+                        : ($imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.'),
                 ]);
                 return;
             }
@@ -40,12 +45,13 @@ class InventoryController extends Controller
             $this->redirect('/index.php?controller=inventory');
         }
 
-        $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create']);
+        $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'deviceTypes' => $deviceTypes]);
     }
 
     public function edit(): void
     {
         $this->requireLogin();
+        $deviceTypes = Product::deviceTypes();
         $id = $this->sanitizeInt($_GET['id'] ?? 0);
         $product = $this->productModel->find($id);
         if (!$product) {
@@ -54,16 +60,20 @@ class InventoryController extends Controller
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
-                $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => array_merge($product, $_POST), 'error' => 'Invalid security token']);
+                $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => array_merge($product, $_POST), 'deviceTypes' => $deviceTypes, 'error' => 'Invalid security token']);
                 return;
             }
             $imei = trim((string) ($_POST['imei'] ?? ''));
-            if ($imei === '' || $this->productModel->imeiExists($imei, $id)) {
+            $deviceType = trim((string) ($_POST['device_type'] ?? ''));
+            if (!in_array($deviceType, $deviceTypes, true) || $imei === '' || $this->productModel->imeiExists($imei, $id)) {
                 $this->view('inventory/form', [
                     'title' => 'Edit Product',
                     'mode' => 'edit',
                     'product' => array_merge($product, $_POST),
-                    'error' => $imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.',
+                    'deviceTypes' => $deviceTypes,
+                    'error' => !in_array($deviceType, $deviceTypes, true)
+                        ? 'Choose a valid device type.'
+                        : ($imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.'),
                 ]);
                 return;
             }
@@ -76,7 +86,7 @@ class InventoryController extends Controller
             $this->redirect('/index.php?controller=inventory');
         }
 
-        $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => $product]);
+        $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => $product, 'deviceTypes' => $deviceTypes]);
     }
 
     public function delete(): void

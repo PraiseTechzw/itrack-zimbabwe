@@ -113,6 +113,7 @@ class Database
             category_id INTEGER,
             name TEXT NOT NULL,
             sku TEXT NOT NULL UNIQUE,
+            imei TEXT UNIQUE,
             unit TEXT DEFAULT 'pcs',
             cost_price REAL DEFAULT 0,
             selling_price REAL DEFAULT 0,
@@ -122,6 +123,7 @@ class Database
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
         )");
+        self::ensureProductImei($pdo);
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS stocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -448,6 +450,15 @@ class Database
             ('Administrator', 1),
             ('Administrator', 2),
             ('Administrator', 3)");
+    }
+
+    private static function ensureProductImei(PDO $pdo): void
+    {
+        $columns = $pdo->query('PRAGMA table_info(products)')->fetchAll();
+        if (!in_array('imei', array_column($columns, 'name'), true)) {
+            $pdo->exec('ALTER TABLE products ADD COLUMN imei TEXT');
+        }
+        $pdo->exec("CREATE UNIQUE INDEX IF NOT EXISTS products_imei_unique ON products(imei) WHERE imei IS NOT NULL AND imei <> ''");
     }
 
     public static function beginTransaction(): bool

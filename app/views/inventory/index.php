@@ -1,16 +1,17 @@
 <?php $title = 'Inventory'; ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="h4 mb-0">Inventory</h2>
-    <a class="btn btn-primary" href="/index.php?controller=inventory&action=create">New Product</a>
+    <a class="btn btn-primary" href="/index.php?controller=inventory&action=create"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>Add Device</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
+        <p class="text-secondary small mb-3">Register each physical device individually using its unique IMEI.</p>
         <div class="table-responsive">
             <table class="table table-striped align-middle">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>SKU</th>
+                        <th>Device / Product</th>
+                        <th>IMEI</th>
                         <th>Unit</th>
                         <th>Cost Price</th>
                         <th>Selling Price</th>
@@ -22,7 +23,7 @@
                 <?php foreach ($products as $product): ?>
                     <tr>
                         <td><?= htmlspecialchars($product['name'] ?? '') ?></td>
-                        <td><?= htmlspecialchars($product['sku'] ?? '') ?></td>
+                        <td><?= htmlspecialchars($product['imei'] ?? '') ?></td>
                         <td><?= htmlspecialchars($product['unit'] ?? '') ?></td>
                         <td>$<?= number_format((float) ($product['cost_price'] ?? 0), 2) ?></td>
                         <td>$<?= number_format((float) ($product['selling_price'] ?? 0), 2) ?></td>

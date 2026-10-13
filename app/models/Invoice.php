@@ -97,7 +97,7 @@ class Invoice extends Model
         if (!$invoice) return null;
         $invoice['items'] = $this->fetchAll('SELECT * FROM invoice_items WHERE invoice_id=:id ORDER BY id', [':id' => $id]);
         if (!$invoice['items']) {
-            $legacyItems = $this->fetchAll('SELECT p.sku AS hs_code, p.name AS description, si.quantity, si.unit_price, si.total_price FROM sale_items si JOIN products p ON p.id=si.product_id WHERE si.sale_id=:sale_id ORDER BY si.id', [':sale_id' => (int) $invoice['sale_id']]);
+            $legacyItems = $this->fetchAll('SELECT CASE WHEN p.imei IS NULL THEN p.sku ELSE NULL END AS hs_code, p.name AS description, si.quantity, si.unit_price, si.total_price FROM sale_items si JOIN products p ON p.id=si.product_id WHERE si.sale_id=:sale_id ORDER BY si.id', [':sale_id' => (int) $invoice['sale_id']]);
             foreach ($legacyItems as $line) {
                 $line['vat_rate'] = 0;
                 $line['vat_amount'] = 0;

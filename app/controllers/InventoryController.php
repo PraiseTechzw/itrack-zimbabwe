@@ -23,7 +23,17 @@ class InventoryController extends Controller
         $this->requireLogin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
-                $this->view('inventory/form', ['error' => 'Invalid security token']);
+                $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'product' => $_POST, 'error' => 'Invalid security token']);
+                return;
+            }
+            $imei = trim((string) ($_POST['imei'] ?? ''));
+            if ($imei === '' || $this->productModel->imeiExists($imei)) {
+                $this->view('inventory/form', [
+                    'title' => 'Create Product',
+                    'mode' => 'create',
+                    'product' => $_POST,
+                    'error' => $imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.',
+                ]);
                 return;
             }
             $productName = trim((string) ($_POST['name'] ?? ''));
@@ -48,7 +58,17 @@ class InventoryController extends Controller
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
-                $this->view('inventory/form', ['product' => $product, 'error' => 'Invalid security token']);
+                $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => array_merge($product, $_POST), 'error' => 'Invalid security token']);
+                return;
+            }
+            $imei = trim((string) ($_POST['imei'] ?? ''));
+            if ($imei === '' || $this->productModel->imeiExists($imei, $id)) {
+                $this->view('inventory/form', [
+                    'title' => 'Edit Product',
+                    'mode' => 'edit',
+                    'product' => array_merge($product, $_POST),
+                    'error' => $imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.',
+                ]);
                 return;
             }
             $productName = trim((string) ($_POST['name'] ?? ''));

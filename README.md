@@ -4,7 +4,7 @@
 
 ## Implemented modules
 
-The application now includes authenticated dashboard access with role-aware navigation, inventory CRUD, supplier and client CRUD, GPS device CRUD, notification CRUD, user administration, purchase-order capture and status updates, sales capture and status visibility, requisition submission and approval, report-record generation, accounting summary data, and reusable security, session, validation, formatting, upload, and permission helpers.
+The application now includes authenticated dashboard access with role-aware navigation, inventory CRUD, supplier and client CRUD, GPS device CRUD, notification CRUD, user administration, purchase-order capture and status updates, sales capture and status visibility, requisition submission and approval, report-record generation with preset or custom calendar date ranges, accounting summary data, and reusable security, session, validation, formatting, upload, and permission helpers.
 
 The public JSON surface is available at `/api/auth.php`, `/api/inventory.php`, `/api/purchases.php`, `/api/sales.php`, `/api/requisitions.php`, `/api/reports.php`, `/api/accounting.php`, an`d `/api/gps.php` when using the built-in server. The original API files remain available at the repository-level `api/` directory for Apache deployments.
 

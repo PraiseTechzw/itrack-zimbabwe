@@ -16,8 +16,39 @@ class Report extends ModuleModel {
         };
     }
 
-    private function periodCondition(string $column, string $period): array
+    public function dateBounds(string $type): ?array
     {
+        $source = match ($type) {
+            'Receivables' => ['invoices', 'due_date'],
+            'GPS activity' => ['gps_devices', 'installed_at'],
+            'Cash book' => ['cash_book', 'entry_date'],
+            'Inventory valuation' => null,
+            default => ['sales', 'sale_date'],
+        };
+        if ($source === null) {
+            return null;
+        }
+        [$table, $column] = $source;
+
+        $dates = $this->fetchOne('SELECT MIN(' . $column . ') AS first_date, MAX(' . $column . ') AS last_date FROM ' . $table);
+        $firstDate = $dates['first_date'] ?? null;
+        $lastDate = $dates['last_date'] ?? null;
+        return [
+            'min' => $firstDate === null || $firstDate === '' ? null : substr((string) $firstDate, 0, 10),
+            'max' => $lastDate === null || $lastDate === '' ? null : substr((string) $lastDate, 0, 10),
+        ];
+    }
+
+    private function periodCondition(string $column, string $period, ?string $startDate = null, ?string $endDate = null): array
+    {
+        if ($period === 'custom' && $startDate !== null && $endDate !== null) {
+            $endExclusive = (new DateTimeImmutable($endDate))->modify('+1 day')->format('Y-m-d');
+            return [
+                ' WHERE ' . $column . ' >= ? AND ' . $column . ' < ?',
+                [$startDate, $endExclusive],
+            ];
+        }
+
         $bounds = $this->periodBounds($period);
         if ($bounds === null) {
             return ['', []];
@@ -28,14 +59,14 @@ class Report extends ModuleModel {
         ];
     }
 
-    public function exportRows(string $type, string $period = 'all'): array
+    public function exportRows(string $type, string $period = 'all', ?string $startDate = null, ?string $endDate = null): array
     {
         [$condition, $params] = match ($type) {
             'Inventory valuation' => ['', []],
-            'Receivables' => $this->periodCondition('i.due_date', $period),
-            'GPS activity' => $this->periodCondition('installed_at', $period),
-            'Cash book' => $this->periodCondition('entry_date', $period),
-            default => $this->periodCondition('s.sale_date', $period),
+            'Receivables' => $this->periodCondition('i.due_date', $period, $startDate, $endDate),
+            'GPS activity' => $this->periodCondition('installed_at', $period, $startDate, $endDate),
+            'Cash book' => $this->periodCondition('entry_date', $period, $startDate, $endDate),
+            default => $this->periodCondition('s.sale_date', $period, $startDate, $endDate),
         };
         return match ($type) {
             'Inventory valuation' => $this->fetchAll('SELECT p.name, p.sku, COALESCE(SUM(s.quantity),0) AS quantity_on_hand, p.cost_price, COALESCE(SUM(s.quantity),0)*p.cost_price AS stock_value FROM products p LEFT JOIN stocks s ON s.product_id=p.id GROUP BY p.id ORDER BY p.name'),

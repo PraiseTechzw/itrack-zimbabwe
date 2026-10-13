@@ -24,7 +24,7 @@ class ReportsController extends Controller
 
 	private function normalizeReportPeriod(string $period): string
 	{
-		return in_array($period, ['all', 'today', 'last_7_days', 'last_30_days', 'this_month'], true) ? $period : 'all';
+		return in_array($period, ['all', 'today', 'last_7_days', 'last_30_days', 'this_month', 'custom'], true) ? $period : 'all';
 	}
 
 	private function effectiveReportPeriod(string $type, string $period): string
@@ -32,10 +32,54 @@ class ReportsController extends Controller
 		return $this->normalizeReportType($type) === 'Inventory valuation' ? 'all' : $period;
 	}
 
-	private function reportPeriodFromFilters(mixed $filters): string
+	private function reportFilters(mixed $filters): array
 	{
 		$decoded = is_string($filters) ? json_decode($filters, true) : $filters;
-		return is_array($decoded) ? $this->normalizeReportPeriod((string) ($decoded['period'] ?? 'all')) : 'all';
+		return is_array($decoded) ? $decoded : [];
+	}
+
+	private function validReportDate(string $date): bool
+	{
+		if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)) {
+			return false;
+		}
+		$parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+		$errors = DateTimeImmutable::getLastErrors();
+		return $parsed !== false
+			&& ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))
+			&& $parsed->format('Y-m-d') === $date;
+	}
+
+	private function customPeriodError(string $type, string $startDate, string $endDate): ?string
+	{
+		if (!$this->validReportDate($startDate) || !$this->validReportDate($endDate)) {
+			return 'Choose a valid start and end date.';
+		}
+		if ($startDate > $endDate) {
+			return 'The start date must be on or before the end date.';
+		}
+		$bounds = $this->model->dateBounds($type) ?? ['min' => null, 'max' => null];
+		$minimumDate = $bounds['min'] ?? date('Y-m-d');
+		$maximumDate = max(date('Y-m-d'), $bounds['max'] ?? date('Y-m-d'));
+		if ($startDate < $minimumDate) {
+			return 'The start date cannot be earlier than the first available record (' . $minimumDate . ').';
+		}
+		if ($endDate > $maximumDate) {
+			return 'The end date cannot be later than the latest available date (' . $maximumDate . ').';
+		}
+		return null;
+	}
+
+	private function requireValidCustomPeriod(string $type, string $period, string $startDate, string $endDate): void
+	{
+		if ($period !== 'custom' || $type === 'Inventory valuation') {
+			return;
+		}
+		$error = $this->customPeriodError($type, $startDate, $endDate);
+		if ($error !== null) {
+			$_SESSION['report_error'] = $error;
+			$this->redirect('/index.php?controller=reports');
+		}
 	}
 
 	public function index(): void
@@ -43,10 +87,15 @@ class ReportsController extends Controller
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		$reports = array_map(function (array $report): array {
 			$type = (string) ($report['report_type'] ?? '');
-			$report['period'] = $this->effectiveReportPeriod($type, $this->reportPeriodFromFilters($report['filters'] ?? null));
+			$filters = $this->reportFilters($report['filters'] ?? null);
+			$report['period'] = $this->effectiveReportPeriod($type, $this->normalizeReportPeriod((string) ($filters['period'] ?? 'all')));
+			$report['start_date'] = (string) ($filters['start_date'] ?? '');
+			$report['end_date'] = (string) ($filters['end_date'] ?? '');
 			$report['period_label'] = $this->normalizeReportType($type) === 'Inventory valuation'
 				? 'Current stock snapshot'
-				: '';
+				: ($report['period'] === 'custom' && $this->validReportDate($report['start_date']) && $this->validReportDate($report['end_date'])
+					? $report['start_date'] . ' – ' . $report['end_date']
+					: '');
 			return $report;
 		}, $this->model->all());
 		$reportPeriods = [
@@ -55,12 +104,26 @@ class ReportsController extends Controller
 			'last_7_days' => 'Last 7 days',
 			'last_30_days' => 'Last 30 days',
 			'this_month' => 'This month',
+			'custom' => 'Custom date range',
 		];
+		$reportDateBounds = [];
+		foreach (['Sales summary', 'Receivables', 'GPS activity', 'Cash book'] as $type) {
+			$bounds = $this->model->dateBounds($type) ?? ['min' => null, 'max' => null];
+			$reportDateBounds[$type] = [
+				'min' => $bounds['min'] ?? date('Y-m-d'),
+				'max' => max(date('Y-m-d'), $bounds['max'] ?? date('Y-m-d')),
+			];
+		}
+		$reportError = $_SESSION['report_error'] ?? null;
+		unset($_SESSION['report_error']);
 		$this->view('reports/index', [
 			'title' => 'Reports',
 			'reports' => $reports,
 			'reportTypes' => ['Sales summary', 'Inventory valuation', 'Receivables', 'GPS activity', 'Cash book'],
 			'reportPeriods' => $reportPeriods,
+			'reportDateBounds' => $reportDateBounds,
+			'reportToday' => date('Y-m-d'),
+			'reportError' => $reportError,
 		]);
 	}
 
@@ -69,19 +132,23 @@ class ReportsController extends Controller
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		$type = $this->normalizeReportType((string) ($_GET['type'] ?? 'Sales summary'));
 		$period = $this->effectiveReportPeriod($type, $this->normalizeReportPeriod((string) ($_GET['period'] ?? 'all')));
+		$startDate = (string) ($_GET['start_date'] ?? '');
+		$endDate = (string) ($_GET['end_date'] ?? '');
+		$this->requireValidCustomPeriod($type, $period, $startDate, $endDate);
 		$periodLabels = [
 			'all' => 'All available records',
 			'today' => 'Today',
 			'last_7_days' => 'Last 7 days',
 			'last_30_days' => 'Last 30 days',
 			'this_month' => 'This month',
+			'custom' => $startDate . ' – ' . $endDate,
 		];
 		$this->view('reports/preview', [
 			'title' => $type . ' report',
 			'reportType' => $type,
 			'reportPeriod' => $type === 'Inventory valuation' ? 'Current stock snapshot' : $periodLabels[$period],
 			'period' => $period,
-			'rows' => ReportFormatter::rows($this->model->exportRows($type, $period)),
+			'rows' => ReportFormatter::rows($this->model->exportRows($type, $period, $startDate, $endDate)),
 			'generatedAt' => date('Y-m-d H:i T'),
 		]);
 	}
@@ -91,7 +158,22 @@ class ReportsController extends Controller
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && $this->validateCsrf()) {
 			$data = $_POST;
-			$data['filters'] = ['period' => $this->normalizeReportPeriod((string) ($data['filters'] ?? 'all'))];
+			$type = $this->normalizeReportType((string) ($data['report_type'] ?? 'Sales summary'));
+			$period = $this->effectiveReportPeriod($type, $this->normalizeReportPeriod((string) ($data['filters'] ?? 'all')));
+			$startDate = (string) ($data['start_date'] ?? '');
+			$endDate = (string) ($data['end_date'] ?? '');
+			if ($period === 'custom' && $type !== 'Inventory valuation') {
+				$error = $this->customPeriodError($type, $startDate, $endDate);
+				if ($error !== null) {
+					$_SESSION['report_error'] = $error;
+					$this->redirect('/index.php?controller=reports');
+				}
+			}
+			$data['filters'] = ['period' => $period];
+			if ($period === 'custom' && $type !== 'Inventory valuation') {
+				$data['filters']['start_date'] = $startDate;
+				$data['filters']['end_date'] = $endDate;
+			}
 			$data['generated_by'] = $_SESSION['user']['id'] ?? null;
 			$this->model->create($data);
 			$userId = (int) ($_SESSION['user']['id'] ?? 0);
@@ -107,7 +189,10 @@ class ReportsController extends Controller
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		$type = $this->normalizeReportType((string) ($_GET['type'] ?? 'Sales summary'));
 		$period = $this->effectiveReportPeriod($type, $this->normalizeReportPeriod((string) ($_GET['period'] ?? 'all')));
-		$rows = ReportFormatter::rows($this->model->exportRows($type, $period));
+		$startDate = (string) ($_GET['start_date'] ?? '');
+		$endDate = (string) ($_GET['end_date'] ?? '');
+		$this->requireValidCustomPeriod($type, $period, $startDate, $endDate);
+		$rows = ReportFormatter::rows($this->model->exportRows($type, $period, $startDate, $endDate));
 		$format = strtolower((string) ($_GET['format'] ?? 'csv'));
 		if (in_array($format, ['xlsx', 'excel'], true)) {
 				$workbook = (new XlsxReport())->build($rows, $type);

@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/Report.php';
 require_once dirname(__DIR__) . '/services/OpenRouterInsights.php';
+require_once dirname(__DIR__) . '/services/XlsxReport.php';
 
 class ReportsController extends Controller
 {
@@ -37,6 +38,15 @@ class ReportsController extends Controller
 		$type = trim((string) ($_GET['type'] ?? 'Sales summary'));
 		$rows = $this->model->exportRows($type);
 		$format = strtolower((string) ($_GET['format'] ?? 'csv'));
+		if (in_array($format, ['xlsx', 'excel'], true)) {
+			$workbook = (new XlsxReport())->build($rows);
+			$safeName = preg_replace('/[^a-z0-9-]+/i', '-', strtolower($type));
+			header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+			header('Content-Disposition: attachment; filename="itrack-' . $safeName . '.xlsx"');
+			header('Content-Length: ' . strlen($workbook));
+			echo $workbook;
+			return;
+		}
 		if ($format === 'pdf') {
 			$lines = [$type, 'Generated: ' . date('Y-m-d H:i'), ''];
 			if ($rows) {

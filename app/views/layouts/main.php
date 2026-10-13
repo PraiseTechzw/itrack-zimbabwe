@@ -187,7 +187,7 @@
         </main>
     </div>
 </div>
-<div class="notification-toast-stack" id="notification-toast-stack" aria-live="polite" aria-relevant="additions"></div>
+<?php if (!empty($isDashboard)): ?><div class="notification-toast-stack" id="notification-toast-stack" aria-live="polite" aria-relevant="additions"></div><?php endif; ?>
 <script>
     const notificationToastStack = document.getElementById('notification-toast-stack');
     const notificationBadge = document.querySelector('[data-notification-badge]');

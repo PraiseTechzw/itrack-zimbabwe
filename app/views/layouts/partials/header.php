@@ -17,11 +17,13 @@ if ($currentUserId > 0 && $isDashboard) {
     <a class="topbar-brand" href="/dashboard.php" aria-label="iTrack dashboard"><span class="brand-mark"><i class="fa-solid fa-route"></i></span><span>iTrack</span></a>
     <div class="crumb"><span class="d-none d-sm-inline">Workspace</span><i class="fa-solid fa-chevron-right mx-2" style="font-size:9px;color:#aab4c4"></i><strong><?= htmlspecialchars($headerSection) ?></strong></div>
     <div class="top-actions">
+        <?php if ($isDashboard): ?>
         <a class="icon-button" href="/dashboard.php#notifications" aria-label="Notifications" data-notification-link>
             <i class="fa-regular fa-bell"></i>
             <span class="notification-badge" data-notification-badge<?= $headerNotificationCount > 0 ? '' : ' hidden' ?>></span>
             <span class="notification-count" data-notification-count<?= $headerNotificationCount > 0 ? '' : ' hidden' ?>><?= $headerNotificationCount > 0 ? htmlspecialchars((string) $headerNotificationCount, ENT_QUOTES, 'UTF-8') : '' ?></span>
         </a>
+        <?php endif; ?>
         <a class="icon-button d-none d-sm-grid" href="/index.php?controller=settings" aria-label="Settings"><i class="fa-solid fa-gear"></i></a>
         <div class="user-pill"><div class="avatar"><?= htmlspecialchars($headerInitial) ?></div><span><?= htmlspecialchars($headerName) ?></span><a class="icon-button border-0 ms-1" href="/logout.php" aria-label="Sign out"><i class="fa-solid fa-arrow-right-from-bracket"></i></a></div>
     </div>

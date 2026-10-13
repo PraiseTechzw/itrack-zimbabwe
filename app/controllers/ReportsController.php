@@ -27,6 +27,11 @@ class ReportsController extends Controller
 		return in_array($period, ['all', 'today', 'last_7_days', 'last_30_days', 'this_month'], true) ? $period : 'all';
 	}
 
+	private function effectiveReportPeriod(string $type, string $period): string
+	{
+		return $this->normalizeReportType($type) === 'Inventory valuation' ? 'all' : $period;
+	}
+
 	private function reportPeriodFromFilters(mixed $filters): string
 	{
 		$decoded = is_string($filters) ? json_decode($filters, true) : $filters;
@@ -37,7 +42,11 @@ class ReportsController extends Controller
 	{
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		$reports = array_map(function (array $report): array {
-			$report['period'] = $this->reportPeriodFromFilters($report['filters'] ?? null);
+			$type = (string) ($report['report_type'] ?? '');
+			$report['period'] = $this->effectiveReportPeriod($type, $this->reportPeriodFromFilters($report['filters'] ?? null));
+			$report['period_label'] = $this->normalizeReportType($type) === 'Inventory valuation'
+				? 'Current stock snapshot'
+				: '';
 			return $report;
 		}, $this->model->all());
 		$reportPeriods = [
@@ -59,7 +68,7 @@ class ReportsController extends Controller
 	{
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		$type = $this->normalizeReportType((string) ($_GET['type'] ?? 'Sales summary'));
-		$period = $this->normalizeReportPeriod((string) ($_GET['period'] ?? 'all'));
+		$period = $this->effectiveReportPeriod($type, $this->normalizeReportPeriod((string) ($_GET['period'] ?? 'all')));
 		$periodLabels = [
 			'all' => 'All available records',
 			'today' => 'Today',
@@ -70,7 +79,7 @@ class ReportsController extends Controller
 		$this->view('reports/preview', [
 			'title' => $type . ' report',
 			'reportType' => $type,
-			'reportPeriod' => $periodLabels[$period],
+			'reportPeriod' => $type === 'Inventory valuation' ? 'Current stock snapshot' : $periodLabels[$period],
 			'period' => $period,
 			'rows' => ReportFormatter::rows($this->model->exportRows($type, $period)),
 			'generatedAt' => date('Y-m-d H:i T'),
@@ -97,7 +106,7 @@ class ReportsController extends Controller
 	{
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
 		$type = $this->normalizeReportType((string) ($_GET['type'] ?? 'Sales summary'));
-		$period = $this->normalizeReportPeriod((string) ($_GET['period'] ?? 'all'));
+		$period = $this->effectiveReportPeriod($type, $this->normalizeReportPeriod((string) ($_GET['period'] ?? 'all')));
 		$rows = ReportFormatter::rows($this->model->exportRows($type, $period));
 		$format = strtolower((string) ($_GET['format'] ?? 'csv'));
 		if (in_array($format, ['xlsx', 'excel'], true)) {

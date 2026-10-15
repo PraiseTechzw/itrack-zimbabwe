@@ -36,6 +36,23 @@ class Product extends Model
         return $this->lastInsertId();
     }
 
+    public function createMany(array $imeis, array $data): void
+    {
+        $this->db->beginTransaction();
+        try {
+            foreach ($imeis as $imei) {
+                $data['imei'] = $imei;
+                $this->create($data);
+            }
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
     public function update(int $id, array $data): void
     {
         $sql = 'UPDATE products SET name = :name, sku = CASE WHEN imei IS NOT NULL THEN :sku ELSE sku END, imei = :imei, device_type = :device_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, status = :status WHERE id = :id';

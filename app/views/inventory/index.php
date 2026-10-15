@@ -5,7 +5,7 @@
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <p class="text-secondary small mb-3">Register each physical device individually using its unique IMEI.</p>
+        <p class="text-secondary small mb-3">Register one or more physical devices. Each device is tracked separately by its unique IMEI.</p>
         <div class="table-responsive">
             <table class="table table-striped align-middle">
                 <thead>

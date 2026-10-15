@@ -27,9 +27,18 @@ class InventoryController extends Controller
                 $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'product' => $_POST, 'deviceTypes' => $deviceTypes, 'error' => 'Invalid security token']);
                 return;
             }
-            $imei = trim((string) ($_POST['imei'] ?? ''));
+            $rawImeis = trim((string) ($_POST['imeis'] ?? $_POST['imei'] ?? ''));
+            $imeis = preg_split('/[\\s,;]+/', $rawImeis, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $imeis = array_values(array_unique(array_map('trim', $imeis)));
             $deviceType = trim((string) ($_POST['device_type'] ?? ''));
-            if (!in_array($deviceType, $deviceTypes, true) || $imei === '' || $this->productModel->imeiExists($imei)) {
+            $duplicateImeis = [];
+            foreach ($imeis as $imei) {
+                if ($this->productModel->imeiExists($imei)) {
+                    $duplicateImeis[] = $imei;
+                }
+            }
+            $hasInputDuplicates = count($imeis) !== count(preg_split('/[\\s,;]+/', $rawImeis, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+            if (!in_array($deviceType, $deviceTypes, true) || count($imeis) === 0 || $hasInputDuplicates || $duplicateImeis !== []) {
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
@@ -37,11 +46,13 @@ class InventoryController extends Controller
                     'deviceTypes' => $deviceTypes,
                     'error' => !in_array($deviceType, $deviceTypes, true)
                         ? 'Choose a valid device type.'
-                        : ($imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.'),
+                        : (count($imeis) === 0 ? 'Enter at least one device IMEI.'
+                            : ($hasInputDuplicates ? 'The IMEI list contains duplicates. Each device must have a unique IMEI.'
+                                : ('Already registered IMEI' . (count($duplicateImeis) === 1 ? '' : 's') . ': ' . implode(', ', $duplicateImeis)))),
                 ]);
                 return;
             }
-            $this->productModel->create($_POST);
+            $this->productModel->createMany($imeis, $_POST);
             $this->redirect('/index.php?controller=inventory');
         }
 

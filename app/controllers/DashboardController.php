@@ -6,7 +6,6 @@ require_once dirname(__DIR__) . '/models/Product.php';
 require_once dirname(__DIR__) . '/models/Client.php';
 require_once dirname(__DIR__) . '/models/GPSDevice.php';
 require_once dirname(__DIR__) . '/models/Permission.php';
-require_once dirname(__DIR__) . '/models/Notification.php';
 
 class DashboardController extends Controller
 {
@@ -15,7 +14,6 @@ class DashboardController extends Controller
     private Client $clientModel;
     private GPSDevice $gpsModel;
     private Permission $permissionModel;
-    private Notification $notificationModel;
 
     public function __construct()
     {
@@ -24,7 +22,6 @@ class DashboardController extends Controller
         $this->clientModel = new Client();
         $this->gpsModel = new GPSDevice();
         $this->permissionModel = new Permission();
-        $this->notificationModel = new Notification();
     }
 
     private function getRoleModules(string $role): array
@@ -65,13 +62,10 @@ class DashboardController extends Controller
         ];
 
         $modules = $this->getRoleModules($role);
-        $notifications = $this->notificationModel->unreadForUser((int) ($_SESSION['user']['id'] ?? 0));
-
         $this->view('dashboard/index', [
             'summary' => $summary,
             'modules' => $modules,
             'role' => $role,
-            'notifications' => array_slice($notifications, 0, 8),
         ]);
     }
 }

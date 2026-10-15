@@ -14,7 +14,7 @@ class GPSController extends Controller
 
     public function index(): void
     {
-        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer']);
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
 
         $this->view('gps/index', [
             'title' => 'GPS Devices',
@@ -24,7 +24,7 @@ class GPSController extends Controller
 
     public function create(): void
     {
-        $this->requireLogin();
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
@@ -39,7 +39,35 @@ class GPSController extends Controller
                 return;
             }
 
-            $this->gpsModel->create($_POST);
+            $rawImeis = trim((string) ($_POST['imeis'] ?? $_POST['imei'] ?? ''));
+            $tokens = preg_split('/[\\s,;]+/', $rawImeis, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            $imeis = array_values(array_unique(array_map('trim', $tokens)));
+            $duplicateImeis = [];
+            foreach ($imeis as $imei) {
+                if ($this->gpsModel->imeiExists($imei)) {
+                    $duplicateImeis[] = $imei;
+                }
+            }
+            $deviceTypes = GPSDevice::deviceTypes();
+            $packageTypes = GPSDevice::packageTypes();
+            $invalidFields = trim((string) ($_POST['device_name'] ?? '')) === ''
+                || !in_array($_POST['device_type'] ?? '', $deviceTypes, true)
+                || !in_array($_POST['package_type'] ?? '', $packageTypes, true)
+                || !in_array($_POST['status'] ?? 'available', ['available', 'installed', 'inactive'], true);
+            $hasInputDuplicates = count($imeis) !== count($tokens);
+            if ($invalidFields || $imeis === [] || $hasInputDuplicates || $duplicateImeis !== []) {
+                $error = $invalidFields ? 'Enter a device name and choose valid device type, package, and status.'
+                    : ($imeis === [] ? 'Enter at least one device IMEI.'
+                        : ($hasInputDuplicates ? 'The IMEI list contains duplicates. Each device must have a unique IMEI.'
+                            : ('Already registered GPS IMEI' . (count($duplicateImeis) === 1 ? '' : 's') . ': ' . implode(', ', $duplicateImeis))));
+                $this->view('gps/form', [
+                    'title' => 'Create GPS Device', 'mode' => 'create', 'error' => $error,
+                    'device' => $_POST, 'deviceTypes' => $deviceTypes, 'packageTypes' => $packageTypes,
+                ]);
+                return;
+            }
+
+            $this->gpsModel->createMany($imeis, $_POST);
             $this->redirect('/index.php?controller=gps');
         }
 
@@ -54,7 +82,7 @@ class GPSController extends Controller
 
     public function edit(): void
     {
-        $this->requireLogin();
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
         $id = $this->sanitizeInt($_GET['id'] ?? 0);
         $device = $this->gpsModel->find($id);
 
@@ -75,6 +103,20 @@ class GPSController extends Controller
                 return;
             }
 
+            $imei = trim((string) ($_POST['imei'] ?? ''));
+            $validFields = in_array($_POST['device_type'] ?? '', GPSDevice::deviceTypes(), true)
+                && in_array($_POST['package_type'] ?? '', GPSDevice::packageTypes(), true)
+                && in_array($_POST['status'] ?? 'available', ['available', 'installed', 'inactive'], true);
+            if (!$validFields || $imei === '' || $this->gpsModel->imeiExists($imei, $id)) {
+                $this->view('gps/form', [
+                    'title' => 'Edit GPS Device', 'mode' => 'edit',
+                    'error' => !$validFields ? 'Choose a valid device type, package, and status.'
+                        : ($imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already assigned to another GPS device.'),
+                    'device' => array_merge($device, $_POST),
+                    'deviceTypes' => GPSDevice::deviceTypes(), 'packageTypes' => GPSDevice::packageTypes(),
+                ]);
+                return;
+            }
             $this->gpsModel->update($id, $_POST);
             $this->redirect('/index.php?controller=gps');
         }
@@ -90,10 +132,10 @@ class GPSController extends Controller
 
     public function delete(): void
     {
-        $this->requireLogin();
-        $id = $this->sanitizeInt($_GET['id'] ?? 0);
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
+        $id = $this->sanitizeInt($_POST['id'] ?? 0);
 
-        if ($id > 0) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $this->validateCsrf() && $id > 0) {
             $this->gpsModel->delete($id);
         }
 

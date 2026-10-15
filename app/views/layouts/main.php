@@ -282,7 +282,7 @@
 
     const routeController = new URLSearchParams(location.search).get('controller');
     const dashboardView = location.pathname.endsWith('/dashboard.php') || routeController === 'dashboard' || (!routeController && location.pathname.endsWith('/index.php'));
-    updateBellState(dashboardView ? (document.querySelector('[data-notification-count]')?.textContent || 0) : 0);
+    updateBellState(document.querySelector('[data-notification-count]')?.textContent || 0);
     if (dashboardView) {
         requestDesktopPushPermission();
         window.addEventListener('load', loadNotifications);

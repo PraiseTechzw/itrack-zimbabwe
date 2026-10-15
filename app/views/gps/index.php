@@ -1,6 +1,6 @@
 <?php $title = 'GPS Devices'; ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h4 mb-0">GPS Devices</h2>
+    <div><h2 class="h4 mb-1">GPS Devices</h2><p class="text-secondary small mb-0">Operational tracker records, including IMEI, SIM, installation package, and status.</p></div>
     <a class="btn btn-primary" href="/index.php?controller=gps&action=create">New GPS Device</a>
 </div>
 <div class="card shadow-sm border-0">
@@ -33,7 +33,11 @@
                             <td><?= htmlspecialchars($device['installed_at'] ?? '—') ?></td>
                             <td>
                                 <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=gps&action=edit&id=<?= (int) ($device['id'] ?? 0) ?>">Edit</a>
-                                <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=gps&action=delete&id=<?= (int) ($device['id'] ?? 0) ?>" onclick="return confirm('Delete this device?')">Delete</a>
+                                <form method="post" action="/index.php?controller=gps&action=delete" class="d-inline" onsubmit="return confirm('Delete this device?')">
+                                    <?= $this->csrfField() ?>
+                                    <input type="hidden" name="id" value="<?= (int) ($device['id'] ?? 0) ?>">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -38,6 +38,34 @@ class GPSDevice extends Model
         return $this->lastInsertId();
     }
 
+    public function createMany(array $imeis, array $data): void
+    {
+        $this->db->beginTransaction();
+        try {
+            foreach ($imeis as $imei) {
+                $data['imei'] = $imei;
+                $this->create($data);
+            }
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
+    public function imeiExists(string $imei, ?int $excludeId = null): bool
+    {
+        $sql = 'SELECT id FROM gps_devices WHERE imei = :imei';
+        $params = [':imei' => trim($imei)];
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :exclude_id';
+            $params[':exclude_id'] = $excludeId;
+        }
+        return $this->fetchOne($sql, $params) !== null;
+    }
+
     public function update(int $id, array $data): void
     {
         $sql = 'UPDATE gps_devices SET device_name = :device_name, device_type = :device_type, package_type = :package_type, imei = :imei, serial = :serial, sim_number = :sim_number, status = :status, installed_at = :installed_at WHERE id = :id';

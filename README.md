@@ -6,7 +6,13 @@
 
 The application now includes authenticated dashboard access with role-aware navigation, inventory CRUD, supplier and client CRUD, GPS device CRUD, notification CRUD, user administration, purchase-order capture and status updates, sales capture and status visibility, requisition submission and approval, report-record generation with preset or custom calendar date ranges, accounting summary data, and reusable security, session, validation, formatting, upload, and permission helpers.
 
-The public JSON surface is available at `/api/auth.php`, `/api/inventory.php`, `/api/purchases.php`, `/api/sales.php`, `/api/requisitions.php`, `/api/reports.php`, `/api/accounting.php`, an`d `/api/gps.php` when using the built-in server. The original API files remain available at the repository-level `api/` directory for Apache deployments.
+The public JSON surface is available at `/api/auth.php`, `/api/inventory.php`, `/api/purchases.php`, `/api/sales.php`, `/api/requisitions.php`, `/api/reports.php`, `/api/accounting.php`, and `/api/gps.php` when using the built-in server. The original API files remain available at the repository-level `api/` directory for Apache deployments.
+
+## Inventory and GPS device records
+
+**Inventory** is the stock register: it stores device type, unique IMEI, cost and selling prices, and stock quantity. **GPS Devices** is the operational tracker register: it stores IMEI, tracker model, SIM number, service package, installation date, and availability/status. Both modules can accept multiple IMEIs at once and create one record per device.
+
+These are currently separate records in separate tables. Registering the same physical tracker in both modules does not link or transfer it between stock and operational tracking; that lifecycle connection is not implemented yet.
 
 ## Requirements
 

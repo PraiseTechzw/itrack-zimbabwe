@@ -5,7 +5,7 @@
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <p class="text-secondary small mb-3">Register one or more physical devices. Each device is tracked separately by its unique IMEI.</p>
+        <p class="text-secondary small mb-3">Stock register for devices held for purchase, sale, or issue. Use GPS Devices for operational tracker records and installation details.</p>
         <div class="table-responsive">
             <table class="table table-striped align-middle">
                 <thead>

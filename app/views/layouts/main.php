@@ -62,6 +62,11 @@
         .notification-toast-error > i { color:#bd3f45; }
         .notification-toast-close { border:0; background:transparent; color:#6c7882; font-size:20px; line-height:1; padding:0; }
         .notification-toast-close:hover { color:#17202a; }
+        .app-confirm-dialog { width:min(420px,calc(100vw - 32px)); border:0; border-radius:18px; padding:0; color:var(--ink); box-shadow:0 24px 70px rgba(15,23,42,.28); }
+        .app-confirm-dialog::backdrop { background:rgba(11,19,36,.52); backdrop-filter:blur(3px); }
+        .app-confirm-dialog-body { padding:24px; }
+        .app-confirm-dialog h2 { font-size:18px; font-weight:800; margin:0 0 8px; }
+        .app-confirm-dialog p { color:#64748b; margin:0 0 22px; font-size:14px; }
         @keyframes notification-toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         @media (prefers-reduced-motion: reduce) { .notification-toast { animation:none; } }
         .user-pill { display:flex; align-items:center; gap:9px; padding-left:8px; border-left:1px solid var(--line); }
@@ -199,7 +204,70 @@
     </div>
 </div>
 <?php if (!empty($isDashboard)): ?><div class="notification-toast-stack" id="notification-toast-stack" aria-live="polite" aria-relevant="additions"></div><?php endif; ?>
+<dialog class="app-confirm-dialog" id="app-confirm-dialog" aria-labelledby="app-confirm-title">
+    <div class="app-confirm-dialog-body">
+        <h2 id="app-confirm-title">Please confirm</h2>
+        <p id="app-confirm-message"></p>
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-light" data-confirm-cancel>Cancel</button>
+            <button type="button" class="btn btn-danger" data-confirm-accept>Delete</button>
+        </div>
+    </div>
+</dialog>
 <script>
+    // Normalize common contact and identifier fields while the user types.
+    document.addEventListener('input', (event) => {
+        const field = event.target;
+        if (!(field instanceof HTMLInputElement)) return;
+        if (field.type === 'email' || field.autocomplete === 'email') {
+            const start = field.selectionStart;
+            const end = field.selectionEnd;
+            const normalized = field.value.replace(/\s+/g, '').toLowerCase();
+            if (field.value !== normalized) {
+                field.value = normalized;
+                if (start !== null && end !== null) field.setSelectionRange(start, end);
+            }
+        }
+        if (field.name === 'imei' || field.name === 'imeis[]') {
+            field.value = field.value.replace(/\D/g, '').slice(0, 15);
+        }
+    });
+
+    const appConfirmDialog = document.getElementById('app-confirm-dialog');
+    const appConfirmMessage = document.getElementById('app-confirm-message');
+    const confirmAccept = appConfirmDialog?.querySelector('[data-confirm-accept]');
+    let pendingConfirmedAction = null;
+    const closeConfirmDialog = () => {
+        if (appConfirmDialog?.open) appConfirmDialog.close();
+        pendingConfirmedAction = null;
+    };
+    document.addEventListener('click', (event) => {
+        const cancel = event.target.closest('[data-confirm-cancel]');
+        if (cancel) { closeConfirmDialog(); return; }
+        const trigger = event.target.closest('a[data-confirm]');
+        if (!trigger || !appConfirmDialog) return;
+        event.preventDefault();
+        pendingConfirmedAction = () => { window.location.href = trigger.href; };
+        appConfirmMessage.textContent = trigger.dataset.confirm || 'Are you sure you want to continue?';
+        appConfirmDialog.showModal();
+    });
+    document.addEventListener('submit', (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || !form.dataset.confirm || form.dataset.confirmed === 'true' || !appConfirmDialog) return;
+        event.preventDefault();
+        pendingConfirmedAction = () => { form.dataset.confirmed = 'true'; form.requestSubmit(); };
+        appConfirmMessage.textContent = form.dataset.confirm;
+        appConfirmDialog.showModal();
+    });
+    confirmAccept?.addEventListener('click', () => {
+        const action = pendingConfirmedAction;
+        closeConfirmDialog();
+        action?.();
+    });
+    appConfirmDialog?.addEventListener('click', (event) => {
+        if (event.target === appConfirmDialog) closeConfirmDialog();
+    });
+
     const notificationToastStack = document.getElementById('notification-toast-stack');
     const notificationBadge = document.querySelector('[data-notification-badge]');
     const notificationCount = document.querySelector('[data-notification-count]');

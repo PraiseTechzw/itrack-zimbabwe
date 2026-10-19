@@ -29,7 +29,7 @@
                             <td><?= htmlspecialchars($device['installed_at'] ?? '—') ?></td>
                             <td>
                                 <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=gps&action=edit&id=<?= (int) ($device['id'] ?? 0) ?>">Edit</a>
-                                <form method="post" action="/index.php?controller=gps&action=delete" class="d-inline" onsubmit="return confirm('Delete this device?')">
+                                <form method="post" action="/index.php?controller=gps&action=delete" class="d-inline" data-confirm="Delete this device?">
                                     <?= $this->csrfField() ?>
                                     <input type="hidden" name="id" value="<?= (int) ($device['id'] ?? 0) ?>">
                                     <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>

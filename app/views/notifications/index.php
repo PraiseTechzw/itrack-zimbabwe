@@ -61,7 +61,7 @@
                                 <td><?= htmlspecialchars($notification['created_at'] ?? '') ?></td>
                                 <td>
                                     <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=notification&action=edit&id=<?= (int) ($notification['id'] ?? 0) ?>">Edit</a>
-                                    <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=notification&action=delete&id=<?= (int) ($notification['id'] ?? 0) ?>" onclick="return confirm('Delete this notification?')">Delete</a>
+                                    <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=notification&action=delete&id=<?= (int) ($notification['id'] ?? 0) ?>" data-confirm="Delete this notification?">Delete</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

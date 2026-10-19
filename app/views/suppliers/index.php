@@ -27,7 +27,7 @@
                             <td><?= htmlspecialchars($supplier['status'] ?? '') ?></td>
                             <td>
                                 <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=supplier&action=edit&id=<?= (int) ($supplier['id'] ?? 0) ?>">Edit</a>
-                                <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=supplier&action=delete&id=<?= (int) ($supplier['id'] ?? 0) ?>" onclick="return confirm('Delete this supplier?')">Delete</a>
+                                <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=supplier&action=delete&id=<?= (int) ($supplier['id'] ?? 0) ?>" data-confirm="Delete this supplier?">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

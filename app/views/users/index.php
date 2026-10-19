@@ -25,7 +25,7 @@
                         <td><?= htmlspecialchars($user['role'] ?? '') ?></td>
                         <td><?= htmlspecialchars($user['department'] ?? '') ?></td>
                         <td><?= htmlspecialchars($user['status'] ?? '') ?></td>
-                        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="?controller=users&action=edit&id=<?= (int) $user['id'] ?>">Edit</a><?php if ((int) $user['id'] !== (int) ($_SESSION['user']['id'] ?? 0)): ?><a class="btn btn-sm btn-outline-danger" href="?controller=users&action=delete&id=<?= (int) $user['id'] ?>" onclick="return confirm('Delete this user?')">Delete</a><?php endif; ?></td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="?controller=users&action=edit&id=<?= (int) $user['id'] ?>">Edit</a><?php if ((int) $user['id'] !== (int) ($_SESSION['user']['id'] ?? 0)): ?><a class="btn btn-sm btn-outline-danger" href="?controller=users&action=delete&id=<?= (int) $user['id'] ?>" data-confirm="Delete this user?">Delete</a><?php endif; ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

@@ -32,7 +32,7 @@
                         <td><?= (int) ($product['opening_stock'] ?? 0) ?></td>
                         <td>
                             <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=inventory&action=edit&id=<?= (int) ($product['id'] ?? 0) ?>">Edit</a>
-                            <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=inventory&action=delete&id=<?= (int) ($product['id'] ?? 0) ?>" onclick="return confirm('Delete this product?')">Delete</a>
+                            <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=inventory&action=delete&id=<?= (int) ($product['id'] ?? 0) ?>" data-confirm="Delete this product?">Delete</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

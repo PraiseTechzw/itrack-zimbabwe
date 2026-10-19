@@ -27,7 +27,7 @@
                             <td><?= htmlspecialchars($client['status'] ?? '') ?></td>
                             <td>
                                 <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=client&action=edit&id=<?= (int) ($client['id'] ?? 0) ?>">Edit</a>
-                                <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=client&action=delete&id=<?= (int) ($client['id'] ?? 0) ?>" onclick="return confirm('Delete this client?')">Delete</a>
+                                <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=client&action=delete&id=<?= (int) ($client['id'] ?? 0) ?>" data-confirm="Delete this client?">Delete</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/User.php';
+require_once dirname(__DIR__) . '/helpers/mail.php';
 
 class AuthController extends Controller
 {
@@ -15,6 +16,7 @@ class AuthController extends Controller
     public function login(): void
     {
         $this->ensureSession();
+        $config = require dirname(__DIR__) . '/config/app.php';
 
         if (!empty($_SESSION['user'])) {
             $this->redirect('/dashboard.php');
@@ -45,7 +47,7 @@ class AuthController extends Controller
             }
         }
 
-        $this->view('auth/login', ['title' => 'Login', 'error' => $error]);
+        $this->view('auth/login', ['title' => 'Login', 'error' => $error, 'registrationAllowed' => !empty($config['allow_registration'])]);
     }
 
     public function logout(): void
@@ -83,8 +85,8 @@ class AuthController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
                 $error = 'Invalid security token.';
-            } elseif (strlen((string) ($_POST['password'] ?? '')) < 8) {
-                $error = 'Password must be at least 8 characters.';
+            } elseif (strlen((string) ($_POST['password'] ?? '')) < 12) {
+                $error = 'Password must be at least 12 characters.';
             } elseif ($this->userModel->findByEmail($this->sanitize($_POST['email'] ?? ''))) {
                 $error = 'An account with that email already exists.';
             } else {
@@ -107,19 +109,54 @@ class AuthController extends Controller
         $message = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->validateCsrf()) {
-                $email = $this->sanitize($_POST['email'] ?? '');
-                $user = $this->userModel->findByEmail($email);
-                if ($user) {
-                    $message = 'Password reset instructions were prepared for ' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '.';
+                $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+                $config = require dirname(__DIR__) . '/config/app.php';
+                $resetBaseUrl = (string) ($config['public_url'] ?? '');
+                $isSecureUrl = str_starts_with($resetBaseUrl, 'https://')
+                    || ($config['environment'] !== 'production' && str_starts_with($resetBaseUrl, 'http://'));
+                if (filter_var($email, FILTER_VALIDATE_EMAIL) && $isSecureUrl) {
+                    $token = $this->userModel->createPasswordResetToken($email);
+                    if ($token !== null) {
+                        $resetLink = $resetBaseUrl . '/index.php?controller=auth&action=resetPassword&token=' . urlencode($token);
+                        $sent = sendMail($email, 'Reset your iTrack password', "A password reset was requested for your iTrack account.\n\nUse this link within one hour:\n{$resetLink}\n\nIf you did not request a reset, ignore this message.");
+                        if (!$sent) $this->userModel->removePasswordResetTokensForEmail($email);
+                    }
                 } else {
-                    $message = 'No account found for that email address.';
+                    error_log('Password reset unavailable: configure APP_PUBLIC_URL and MAIL_FROM.');
                 }
+                $message = 'If an active account matches that address, reset instructions will be sent shortly.';
             } else {
                 $message = 'Invalid security token.';
             }
         }
 
         $this->view('auth/forgot-password', ['title' => 'Forgot Password', 'message' => $message]);
+    }
+
+    public function resetPassword(): void
+    {
+        $this->ensureSession();
+        $token = trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
+        $success = false;
+        $error = '';
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->validateCsrf()) {
+                $error = 'Your session expired. Reload the link and try again.';
+            } elseif (strlen((string) ($_POST['password'] ?? '')) < 12) {
+                $error = 'Choose a password with at least 12 characters.';
+            } elseif (!hash_equals((string) ($_POST['password'] ?? ''), (string) ($_POST['password_confirmation'] ?? ''))) {
+                $error = 'The passwords do not match.';
+            } else {
+                $success = $this->userModel->resetPassword($token, (string) $_POST['password']);
+                if (!$success) $error = 'This reset link is invalid or has expired. Request a new one.';
+            }
+        } else {
+            $success = preg_match('/^[a-f0-9]{64}$/D', $token) === 1;
+            if (!$success) $error = 'This reset link is invalid or has expired. Request a new one.';
+        }
+
+        $this->view('auth/reset-password', ['title' => 'Choose a new password', 'token' => $token, 'success' => $success, 'error' => $error]);
     }
 
     public function changePassword(): void
@@ -129,8 +166,20 @@ class AuthController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($this->validateCsrf()) {
                 $password = (string) ($_POST['password'] ?? '');
-                $this->userModel->updatePassword((int) ($_SESSION['user']['id'] ?? 0), $password);
-                $message = 'Password updated successfully.';
+                $userId = (int) ($_SESSION['user']['id'] ?? 0);
+                $currentPassword = (string) ($_POST['current_password'] ?? '');
+                if (!$this->userModel->verifyPassword($userId, $currentPassword)) {
+                    $message = 'Current password is incorrect.';
+                } elseif (strlen($password) < 12) {
+                    $message = 'Choose a password with at least 12 characters.';
+                } elseif (!hash_equals($password, (string) ($_POST['password_confirmation'] ?? ''))) {
+                    $message = 'The passwords do not match.';
+                } else {
+                    $this->userModel->updatePassword($userId, $password);
+                    session_regenerate_id(true);
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                    $message = 'Password updated successfully.';
+                }
             } else {
                 $message = 'Invalid security token.';
             }

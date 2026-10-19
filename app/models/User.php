@@ -72,6 +72,46 @@ class User extends Model
         ]);
     }
 
+    public function createPasswordResetToken(string $email): ?string
+    {
+        $user = $this->fetchOne("SELECT id FROM users WHERE email = :email AND status = 'active' LIMIT 1", [':email' => $email]);
+        if (!$user) return null;
+
+        $token = bin2hex(random_bytes(32));
+        $this->execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [(int) $user['id']]);
+        $this->execute('INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)', [(int) $user['id'], hash('sha256', $token), gmdate('Y-m-d H:i:s', time() + 3600)]);
+        return $token;
+    }
+
+    public function removePasswordResetTokensForEmail(string $email): void
+    {
+        $this->execute('DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE email = ?)', [$email]);
+    }
+
+    public function resetPassword(string $token, string $password): bool
+    {
+        if (!preg_match('/^[a-f0-9]{64}$/D', $token)) return false;
+        $record = $this->fetchOne('SELECT id, user_id FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ? LIMIT 1', [hash('sha256', $token), gmdate('Y-m-d H:i:s')]);
+        if (!$record) return false;
+
+        $this->db->beginTransaction();
+        try {
+            $this->execute('UPDATE users SET password_hash = ? WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), (int) $record['user_id']]);
+            $this->execute('DELETE FROM password_reset_tokens WHERE user_id = ?', [(int) $record['user_id']]);
+            $this->db->commit();
+            return true;
+        } catch (Throwable $exception) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            throw $exception;
+        }
+    }
+
+    public function verifyPassword(int $id, string $password): bool
+    {
+        $user = $this->fetchOne('SELECT password_hash FROM users WHERE id = ?', [$id]);
+        return $user !== null && password_verify($password, $user['password_hash']);
+    }
+
     public function dashboardSummary(): array
     {
         $sql = 'SELECT COUNT(*) AS total_users FROM users';

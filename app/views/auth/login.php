@@ -1,5 +1,4 @@
 <?php $title = 'Login'; ?>
-<?= consoleLog('Login page loaded', ['method' => $_SERVER['REQUEST_METHOD'] ?? 'GET', 'error' => $error]) ?>
 <section class="auth-panel" aria-labelledby="auth-title">
     <div class="auth-panel-heading">
         <p class="auth-kicker">ACCOUNT ACCESS</p>
@@ -8,7 +7,6 @@
     </div>
     <?php if (!empty($error)): ?>
         <div class="alert alert-danger" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
-        <?= consoleLog('Login error shown', ['error' => $error]) ?>
     <?php endif; ?>
     <form method="post" class="auth-form">
         <?= $this->csrfField() ?>
@@ -26,6 +24,6 @@
         </div>
         <button class="btn btn-primary w-100" type="submit">Sign in <i class="fa-solid fa-arrow-right"></i></button>
     </form>
-    <p class="auth-panel-footer">Need access to iTrack? <a href="/index.php?controller=auth&action=register">Create a staff account</a></p>
+    <?php if (!empty($registrationAllowed)): ?><p class="auth-panel-footer">Need access to iTrack? <a href="/index.php?controller=auth&action=register">Create a staff account</a></p><?php endif; ?>
     <div class="auth-security-note"><i class="fa-solid fa-shield-halved"></i> Your account is protected with secure access</div>
 </section>

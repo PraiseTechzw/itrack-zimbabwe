@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <?php $isPublicAuthPage = in_array($view ?? '', ['auth/login', 'auth/register', 'auth/forgot-password'], true); ?>
+    <?php $isPublicAuthPage = in_array($view ?? '', ['auth/login', 'auth/register', 'auth/forgot-password', 'auth/reset-password'], true); ?>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0b1324">

@@ -46,13 +46,14 @@ class Database
 
     private static function createSqliteInstance(array $config): PDO
     {
-        $projectRoot = dirname(__DIR__, 2);
-        $storageDir = $projectRoot . '/storage';
+        $dbPath = (string) ($config['db_sqlite_path'] ?? '');
+        if ($dbPath === '') throw new RuntimeException('DB_SQLITE_PATH must not be empty when using SQLite.');
+        $storageDir = dirname($dbPath);
         if (!is_dir($storageDir)) {
-            mkdir($storageDir, 0750, true);
+            if (!mkdir($storageDir, 0750, true) && !is_dir($storageDir)) {
+                throw new RuntimeException('Could not create the SQLite storage directory.');
+            }
         }
-
-        $dbPath = $storageDir . '/itrack.sqlite';
         $pdo = new PDO('sqlite:' . $dbPath, null, null, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -78,6 +79,15 @@ class Database
             department TEXT DEFAULT 'General',
             status TEXT DEFAULT 'active',
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token_hash TEXT NOT NULL UNIQUE,
+            expires_at TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )");
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS categories (

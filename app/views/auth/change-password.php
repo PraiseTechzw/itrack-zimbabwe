@@ -9,10 +9,12 @@
                 <?php endif; ?>
                 <form method="post">
                     <?= $this->csrfField() ?>
+                    <div class="mb-3"><label class="form-label">Current password</label><input type="password" name="current_password" class="form-control" autocomplete="current-password" required></div>
                     <div class="mb-3">
                         <label class="form-label">New password</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <input type="password" name="password" class="form-control" minlength="12" autocomplete="new-password" required>
                     </div>
+                    <div class="mb-3"><label class="form-label">Confirm new password</label><input type="password" name="password_confirmation" class="form-control" minlength="12" autocomplete="new-password" required></div>
                     <button class="btn btn-primary" type="submit">Update Password</button>
                 </form>
             </div>

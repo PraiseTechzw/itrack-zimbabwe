@@ -15,6 +15,17 @@
         a { color:inherit; }
         .app-shell { min-height:100vh; display:flex; }
         .sidebar { width:264px; flex:0 0 264px; min-height:100vh; background:linear-gradient(180deg,#0b1324 0%,#101b30 100%); color:#d9e2f0; padding:22px 14px; position:sticky; top:0; height:100vh; overflow-y:auto; z-index:20; }
+        .sidebar { transition:width .22s ease, flex-basis .22s ease, padding .22s ease; }
+        .sidebar-collapse-toggle { width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:10px;background:#fff;color:#56647a; }
+        .sidebar-collapse-toggle:hover { color:var(--brand);border-color:#c9c5ff;background:#fafaff; }
+        body.sidebar-collapsed .sidebar { width:76px;flex-basis:76px;padding-left:10px;padding-right:10px; }
+        body.sidebar-collapsed .sidebar .brand { justify-content:center;padding-left:0;padding-right:0; }
+        body.sidebar-collapsed .sidebar .brand>div:last-child,body.sidebar-collapsed .sidebar .profile-chip .min-w-0,body.sidebar-collapsed .sidebar .nav-title,body.sidebar-collapsed .sidebar .nav-link span { display:none; }
+        body.sidebar-collapsed .sidebar .profile-chip { display:flex;justify-content:center;padding:9px 4px;margin-left:0;margin-right:0; }
+        body.sidebar-collapsed .sidebar .nav-link { justify-content:center;padding-left:8px;padding-right:8px; }
+        body.sidebar-collapsed .sidebar .nav-link i { width:auto;font-size:16px; }
+        body.sidebar-collapsed .sidebar-footer { margin-left:0;margin-right:0; }
+        body.sidebar-collapsed .sidebar-collapse-toggle i { transform:rotate(180deg); }
         .brand { display:flex; align-items:center; gap:11px; padding:6px 12px 22px; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,.09); }
         .brand-mark { width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:white; background:linear-gradient(135deg,#766bff,#4f46e5); box-shadow:0 8px 18px rgba(79,70,229,.32); }
         .brand-title { font-size:15px; font-weight:800; line-height:1.05; letter-spacing:.04em; color:#f8fbff; }
@@ -141,7 +152,7 @@
         @media (max-width:850px) { .auth-main { grid-template-columns:minmax(0, 460px); justify-content:center; gap:8px; padding:38px 0 48px; } .auth-story { padding:12px 0 20px; } .auth-story h1 { max-width:580px; font-size:clamp(34px, 7vw, 46px); } .auth-story-copy { margin-top:12px; font-size:14px; } .auth-benefits { grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:18px; font-size:11px; } .auth-benefits li { align-items:flex-start; gap:7px; } }
         @media (max-width:575px) { .topbar-brand { display:flex; } .crumb { display:none; } .auth-header { min-height:68px; padding:11px 18px; } .auth-header-note { gap:0; font-size:11px; } .auth-header-note > span { display:none; } .auth-main { width:min(calc(100% - 28px), 460px); padding:27px 0 35px; } .auth-story { padding:8px 0 19px; } .auth-story h1 { font-size:34px; } .auth-story-copy { font-size:13px; } .auth-benefits { grid-template-columns:1fr; gap:8px; margin-top:15px; } .auth-panel { padding:23px 20px; border-radius:17px; } .auth-panel-heading { margin-bottom:21px; } .auth-panel-heading h2 { font-size:23px; } .auth-footer { padding-bottom:16px; } }
         @media (max-width:1199px) { .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-        @media (max-width:991px) { .sidebar { position:fixed; left:-280px; transition:left .25s ease; } body.sidebar-open .sidebar { left:0; box-shadow:18px 0 48px rgba(15,23,42,.24); } .menu-toggle { display:grid; place-items:center; } .topbar { padding:0 18px; } .content-wrapper { padding:26px 18px 40px; } .dashboard-grid { grid-template-columns:1fr; } }
+        @media (max-width:991px) { body.sidebar-collapsed .sidebar { width:264px;flex-basis:264px;padding:22px 14px; } body.sidebar-collapsed .sidebar .brand>div:last-child,body.sidebar-collapsed .sidebar .profile-chip .min-w-0,body.sidebar-collapsed .sidebar .nav-title,body.sidebar-collapsed .sidebar .nav-link span { display:initial; } body.sidebar-collapsed .sidebar .brand { justify-content:flex-start;padding:6px 12px 22px; } body.sidebar-collapsed .sidebar .profile-chip { display:block;padding:12px;margin:16px 6px 18px; } body.sidebar-collapsed .sidebar .nav-link { justify-content:flex-start;padding:10px 12px; } body.sidebar-collapsed .sidebar .nav-link i { width:18px;font-size:14px; } .sidebar-collapse-toggle { display:none; } .sidebar { position:fixed; left:-280px; transition:left .25s ease; } body.sidebar-open .sidebar { left:0; box-shadow:18px 0 48px rgba(15,23,42,.24); } .menu-toggle { display:grid; place-items:center; } .topbar { padding:0 18px; } .content-wrapper { padding:26px 18px 40px; } .dashboard-grid { grid-template-columns:1fr; } }
         @media (max-width:575px) { .stats-grid { grid-template-columns:1fr; } .user-pill span { display:none; } .topbar { height:66px; } .content-wrapper { padding:22px 14px 34px; } .card .card-body { padding:17px; } }
     </style>
 </head>
@@ -277,6 +288,22 @@
         }
     };
 
+    const sidebarCollapseButton = document.querySelector('.sidebar-collapse-toggle');
+    const sidebarIsCollapsed = localStorage.getItem('itrack-sidebar-collapsed') === 'true';
+    if (sidebarIsCollapsed && window.matchMedia('(min-width: 992px)').matches) document.body.classList.add('sidebar-collapsed');
+    const updateSidebarToggle = () => {
+        const collapsed = document.body.classList.contains('sidebar-collapsed');
+        if (!sidebarCollapseButton) return;
+        sidebarCollapseButton.setAttribute('aria-expanded', String(!collapsed));
+        sidebarCollapseButton.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+        sidebarCollapseButton.title = collapsed ? 'Expand sidebar' : 'Collapse sidebar';
+    };
+    updateSidebarToggle();
+    sidebarCollapseButton?.addEventListener('click', () => {
+        document.body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('itrack-sidebar-collapsed', String(document.body.classList.contains('sidebar-collapsed')));
+        updateSidebarToggle();
+    });
     document.querySelector('.menu-toggle')?.addEventListener('click', () => document.body.classList.toggle('sidebar-open'));
     document.querySelectorAll('.sidebar .nav-link').forEach(link => link.addEventListener('click', () => document.body.classList.remove('sidebar-open')));
 

@@ -85,6 +85,10 @@ class ReportsController extends Controller
 	public function index(): void
 	{
 		$this->requireModuleAccess('reports', ['Administrator', 'Finance Officer', 'Director']);
+		$reportPageSize = 10;
+		$reportCount = $this->model->count();
+		$reportPageCount = max(1, (int) ceil($reportCount / $reportPageSize));
+		$reportPage = max(1, min($reportPageCount, (int) ($_GET['page'] ?? 1)));
 		$reports = array_map(function (array $report): array {
 			$type = (string) ($report['report_type'] ?? '');
 			$filters = $this->reportFilters($report['filters'] ?? null);
@@ -97,7 +101,7 @@ class ReportsController extends Controller
 					? $report['start_date'] . ' – ' . $report['end_date']
 					: '');
 			return $report;
-		}, $this->model->all());
+		}, $this->model->all($reportPageSize, ($reportPage - 1) * $reportPageSize));
 		$reportPeriods = [
 			'all' => 'All available records',
 			'today' => 'Today',
@@ -119,6 +123,9 @@ class ReportsController extends Controller
 		$this->view('reports/index', [
 			'title' => 'Reports',
 			'reports' => $reports,
+			'reportPage' => $reportPage,
+			'reportPageCount' => $reportPageCount,
+			'reportCount' => $reportCount,
 			'reportTypes' => ['Sales summary', 'Inventory valuation', 'Receivables', 'GPS activity', 'Cash book'],
 			'reportPeriods' => $reportPeriods,
 			'reportDateBounds' => $reportDateBounds,
@@ -151,6 +158,8 @@ class ReportsController extends Controller
 			'startDate' => $startDate,
 			'endDate' => $endDate,
 			'rows' => ReportFormatter::rows($this->model->exportRows($type, $period, $startDate, $endDate)),
+			'previewPage' => max(1, (int) ($_GET['page'] ?? 1)),
+			'previewPageSize' => 25,
 			'generatedAt' => date('Y-m-d H:i T'),
 		]);
 	}

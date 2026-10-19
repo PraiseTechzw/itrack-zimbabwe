@@ -18,6 +18,7 @@
 					<?= $this->csrfField() ?>
 					<label class="form-label mb-0" for="ai-insights-question">What would you like to know?</label>
 					<textarea class="form-control" id="ai-insights-question" name="question" rows="3" maxlength="1000" placeholder="For example: What should I pay attention to in recent sales and stock levels?" required></textarea>
+					<div class="report-prompt-list" aria-label="Suggested questions"><button type="button" data-question="Compare sales in the last 30 days with the previous 30 days and summarize the main changes.">Sales trend</button><button type="button" data-question="Which products need attention based on current stock and reorder levels?">Low stock</button><button type="button" data-question="Summarize purchase orders by status and point out any pending commitments.">Purchase orders</button></div>
 					<div class="report-insights-form-footer">
 						<span class="report-insights-privacy"><i class="fa-solid fa-lock" aria-hidden="true"></i>Aggregated data only. Avoid personal or confidential information.</span>
 						<button class="btn btn-primary flex-shrink-0" id="ai-insights-submit" type="submit"><i class="fa-solid fa-paper-plane me-2" aria-hidden="true"></i>Get insights</button>
@@ -72,6 +73,13 @@
 				<?php endforeach; ?>
 				<?php if (empty($reports)): ?><tr><td colspan="6"><div class="report-empty-state"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><strong>No saved reports yet</strong><span>Create a report to preview it and download a copy.</span></div></td></tr><?php endif; ?>
 			</tbody></table></div>
+			<?php if (($reportPageCount ?? 1) > 1): $firstReport = (($reportPage - 1) * 10) + 1; $lastReport = min($reportPage * 10, $reportCount); ?>
+				<div class="report-pagination"><span>Showing <?= number_format($firstReport) ?>–<?= number_format($lastReport) ?> of <?= number_format($reportCount) ?> reports</span><nav aria-label="Saved report pages"><ul class="pagination pagination-sm mb-0">
+					<li class="page-item <?= $reportPage <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="?controller=reports&amp;page=<?= max(1, $reportPage - 1) ?>" aria-label="Previous page">‹</a></li>
+					<?php for ($pageNumber = max(1, $reportPage - 2); $pageNumber <= min($reportPageCount, $reportPage + 2); $pageNumber++): ?><li class="page-item <?= $pageNumber === $reportPage ? 'active' : '' ?>"><a class="page-link" href="?controller=reports&amp;page=<?= $pageNumber ?>"><?= $pageNumber ?></a></li><?php endfor; ?>
+					<li class="page-item <?= $reportPage >= $reportPageCount ? 'disabled' : '' ?>"><a class="page-link" href="?controller=reports&amp;page=<?= min($reportPageCount, $reportPage + 1) ?>" aria-label="Next page">›</a></li>
+				</ul></nav></div>
+			<?php endif; ?>
 		</div></div>
 	</div>
 </div>
@@ -84,6 +92,14 @@
 	const dateHelp = document.getElementById('report-date-help');
 	const dateBounds = <?= json_encode($reportDateBounds ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 	const today = <?= json_encode($reportToday ?? date('Y-m-d')) ?>;
+	const reportName = document.getElementById('report-name');
+	let lastSuggestedName = '';
+	const suggestReportName = () => {
+		const label = reportType.value === 'Inventory valuation' ? 'Current stock' : (period.options[period.selectedIndex]?.text || 'Report');
+		const suggested = `${reportType.value} · ${label}`;
+		if (!reportName.value || reportName.value === lastSuggestedName) reportName.value = suggested;
+		lastSuggestedName = suggested;
+	};
 
 	const updateDateFields = () => {
 		const isInventory = reportType.value === 'Inventory valuation';
@@ -105,10 +121,22 @@
 		endDate.min = startDate.value || startDate.min;
 		startDate.max = bounds.max;
 		endDate.max = bounds.max;
+		if (isCustom && !startDate.value) {
+			const recentStart = new Date(`${bounds.max}T00:00:00`);
+			recentStart.setDate(recentStart.getDate() - 29);
+			const recentDate = `${recentStart.getFullYear()}-${String(recentStart.getMonth() + 1).padStart(2, '0')}-${String(recentStart.getDate()).padStart(2, '0')}`;
+			startDate.value = recentDate < bounds.min ? bounds.min : recentDate;
+			endDate.value = bounds.max;
+		}
+		suggestReportName();
 	};
 
 	reportType.addEventListener('change', updateDateFields);
 	period.addEventListener('change', updateDateFields);
+	document.querySelectorAll('.report-prompt-list [data-question]').forEach(button => button.addEventListener('click', () => {
+		document.getElementById('ai-insights-question').value = button.dataset.question;
+		document.getElementById('ai-insights-question').focus();
+	}));
 	startDate.addEventListener('change', () => {
 		endDate.min = startDate.value || startDate.min;
 		if (endDate.value && endDate.value < endDate.min) endDate.value = endDate.min;
@@ -119,6 +147,8 @@
 <style>
 .reports-page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}.reports-count{display:flex;align-items:center;gap:12px;padding:11px 15px;border:1px solid #e3e8f0;border-radius:12px;background:#fff;color:#53647d}.reports-count>i{font-size:18px;color:#5267ce}.reports-count span{display:grid;line-height:1.2}.reports-count strong{font-size:17px;color:#203653}.reports-count small{font-size:10px;color:#7e8ba0}.report-insights{border-radius:16px}.reports-page .card,.report-card-heading{border-radius:14px}.report-card-heading{display:flex;align-items:center;gap:12px;margin-bottom:20px}.report-card-heading h2{font-size:17px;font-weight:750;color:#203653;margin:0}.report-card-heading p{font-size:12px;color:#75839a;margin:3px 0 0}.report-card-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#eef1ff;color:#5367d5}.report-card-icon-muted{background:#f0f3f7;color:#65758d}.report-history-table{min-width:760px;font-size:12px;vertical-align:middle}.report-history-table thead th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#78859a;background:#f7f9fc;border-bottom-color:#e8edf3;padding:11px 10px;white-space:nowrap}.report-history-table tbody td{padding:12px 10px;border-bottom-color:#edf0f5;color:#506079}.report-history-table tbody tr:last-child td{border-bottom:0}.report-name-cell{font-weight:700;color:#203653!important;min-width:145px}.report-type-badge{display:inline-flex;padding:5px 8px;border-radius:7px;background:#eef2f8;color:#465a75;font-size:10px;font-weight:700;white-space:nowrap}.report-file-actions{display:flex;gap:5px}.report-file-actions .btn{font-size:10px}.report-empty-state{min-height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;color:#8290a4}.report-empty-state i{font-size:25px;color:#aab5c4}.report-empty-state strong{font-size:13px;color:#465a75}.report-empty-state span{font-size:11px}@media(max-width:700px){.reports-page-heading{align-items:flex-start;flex-direction:column}.reports-count{width:100%}}
 .reports-page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px}.reports-count{display:flex;align-items:center;gap:12px;padding:11px 15px;border:1px solid #e3e8f0;border-radius:12px;background:#fff;color:#53647d}.reports-count>i{font-size:18px;color:#5267ce}.reports-count span{display:grid;line-height:1.2}.reports-count strong{font-size:17px;color:#203653}.reports-count small{font-size:10px;color:#7e8ba0}.report-insights{border-radius:16px}.report-card-heading{display:flex;align-items:center;gap:12px;margin-bottom:20px}.report-card-heading h2{font-size:17px;font-weight:750;color:#203653;margin:0}.report-card-heading p{font-size:12px;color:#75839a;margin:3px 0 0}.report-card-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:#eef1ff;color:#5367d5}.report-card-icon-muted{background:#f0f3f7;color:#65758d}.report-history-table{min-width:760px;font-size:12px;vertical-align:middle}.report-history-table thead th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#78859a;background:#f7f9fc;border-bottom-color:#e8edf3;padding:11px 10px;white-space:nowrap}.report-history-table tbody td{padding:12px 10px;border-bottom-color:#edf0f5;color:#506079}.report-history-table tbody tr:last-child td{border-bottom:0}.report-name-cell{font-weight:700;color:#203653!important;min-width:145px}.report-type-badge{display:inline-flex;padding:5px 8px;border-radius:7px;background:#eef2f8;color:#465a75;font-size:10px;font-weight:700;white-space:nowrap}.report-file-actions{display:flex;gap:5px}.report-file-actions .btn{font-size:10px}.report-empty-state{min-height:180px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;color:#8290a4}.report-empty-state i{font-size:25px;color:#aab5c4}.report-empty-state strong{font-size:13px;color:#465a75}.report-empty-state span{font-size:11px}.report-generation-card,.report-history-card{border:1px solid #e5eaf1;border-radius:15px;box-shadow:0 8px 25px rgba(24,44,75,.04)}.report-generation-card .card-body,.report-history-card .card-body{padding:22px}.report-generation-card .form-label{font-size:12px;font-weight:700;color:#45566e}.report-generation-card .btn-primary{padding:10px 14px;font-weight:700}.report-insights{box-shadow:0 8px 25px rgba(24,44,75,.04)}@media(max-width:700px){.reports-page-heading{align-items:flex-start;flex-direction:column}.reports-count{width:100%}.report-generation-card .card-body,.report-history-card .card-body{padding:16px}}
+.report-pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:16px;margin-top:4px;border-top:1px solid #edf0f5;color:#7a879a;font-size:11px}.report-pagination .page-link{color:#4d60c8;border-color:#e4e9f0}.report-pagination .active .page-link{background:#5267d5;border-color:#5267d5;color:#fff}@media(max-width:520px){.report-pagination{align-items:flex-start;flex-direction:column}}
+.report-prompt-list{display:flex;flex-wrap:wrap;gap:7px}.report-prompt-list button{border:1px solid #e1e6f0;border-radius:999px;background:#fff;padding:5px 10px;color:#52617a;font-size:10px;font-weight:700;transition:.15s ease}.report-prompt-list button:hover,.report-prompt-list button:focus-visible{border-color:#7770df;background:#f5f4ff;color:#5147c8;outline:0}
 </style>
 <script>
 (() => {

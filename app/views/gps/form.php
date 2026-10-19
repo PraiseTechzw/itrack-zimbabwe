@@ -11,7 +11,7 @@
                 <form method="post" class="row g-3">
                     <?= $this->csrfField() ?>
                     <div class="col-md-6">
-                        <label class="form-label">Device Name / Type</label>
+                        <label class="form-label">Device Type</label>
                         <select name="device_type" class="form-select" aria-label="GPS device type">
                             <?php foreach (($deviceTypes ?? []) as $type): ?><option value="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>" <?= ($device['device_type'] ?? 'Galileosky 7x') === $type ? 'selected' : '' ?>><?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
                         </select>

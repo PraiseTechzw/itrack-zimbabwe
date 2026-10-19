@@ -32,8 +32,15 @@ if ($summaryByCurrency) {
 }
 $period = (string) ($period ?? 'all');
 $reportPeriod = (string) ($reportPeriod ?? 'All available records');
+$totalRows = count($rows);
+$previewPageSize = max(1, (int) ($previewPageSize ?? 25));
+$previewPageCount = max(1, (int) ceil($totalRows / $previewPageSize));
+$previewPage = max(1, min($previewPageCount, (int) ($previewPage ?? 1)));
+$rows = array_slice($rows, ($previewPage - 1) * $previewPageSize, $previewPageSize);
 $baseUrl = '/index.php?controller=reports&action=export&type=' . urlencode((string) ($reportType ?? 'Sales summary')) . '&period=' . urlencode($period);
 if ($period === 'custom') $baseUrl .= '&start_date=' . urlencode((string) ($startDate ?? '')) . '&end_date=' . urlencode((string) ($endDate ?? ''));
+$previewPageUrl = '/index.php?controller=reports&action=preview&type=' . urlencode((string) ($reportType ?? 'Sales summary')) . '&period=' . urlencode($period);
+if ($period === 'custom') $previewPageUrl .= '&start_date=' . urlencode((string) ($startDate ?? '')) . '&end_date=' . urlencode((string) ($endDate ?? ''));
 ?>
 <div class="report-toolbar d-flex justify-content-between align-items-center gap-2 flex-wrap mb-4">
     <a class="btn btn-outline-secondary" href="/index.php?controller=reports"><i class="fa-solid fa-arrow-left me-2"></i>Back to reports</a>
@@ -58,14 +65,14 @@ if ($period === 'custom') $baseUrl .= '&start_date=' . urlencode((string) ($star
     </header>
     <section class="report-summary" aria-label="Report summary">
         <div class="summary-card"><span>REPORT TYPE</span><strong><?= $escape($reportType ?? '') ?></strong></div>
-        <div class="summary-card"><span>RECORDS</span><strong><?= number_format(count($rows)) ?></strong></div>
+        <div class="summary-card"><span>RECORDS</span><strong><?= number_format($totalRows) ?></strong></div>
         <?php if ($summaryKey !== null): ?>
             <div class="summary-card"><span><?= $escape(ucwords(str_replace('_', ' ', $summaryKey))) ?></span><strong><?= $escape($summaryDisplay) ?></strong></div>
         <?php endif; ?>
     </section>
     <section class="report-table-section">
         <div class="table-heading">
-            <div><h2>Report detail</h2><p><?= number_format(count($rows)) ?> data records · generated from the current operational database</p></div>
+            <div><h2>Report detail</h2><p><?= number_format($totalRows) ?> data records · generated from the current operational database</p></div>
             <span class="report-confidential">CONFIDENTIAL · INTERNAL</span>
         </div>
         <?php if (!$rows): ?>
@@ -77,6 +84,13 @@ if ($period === 'custom') $baseUrl .= '&start_date=' . urlencode((string) ($star
                     <tbody><?php foreach ($rows as $row): ?><tr><?php foreach ($columns as $column): ?><?php $value = $row[$column] ?? ''; ?><td class="<?= is_numeric($value) ? 'numeric' : '' ?>"><?= $escape(ReportFormatter::displayValue((string) $column, $value)) ?></td><?php endforeach; ?></tr><?php endforeach; ?></tbody>
                 </table>
             </div>
+            <?php if ($previewPageCount > 1): $firstRow = (($previewPage - 1) * $previewPageSize) + 1; $lastRow = min($previewPage * $previewPageSize, $totalRows); ?>
+                <div class="report-pagination"><span>Showing <?= number_format($firstRow) ?>–<?= number_format($lastRow) ?> of <?= number_format($totalRows) ?> records</span><nav aria-label="Report detail pages"><ul class="pagination pagination-sm mb-0">
+                    <li class="page-item <?= $previewPage <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $escape($previewPageUrl . '&page=' . max(1, $previewPage - 1)) ?>" aria-label="Previous page">‹</a></li>
+                    <?php for ($pageNumber = max(1, $previewPage - 2); $pageNumber <= min($previewPageCount, $previewPage + 2); $pageNumber++): ?><li class="page-item <?= $pageNumber === $previewPage ? 'active' : '' ?>"><a class="page-link" href="<?= $escape($previewPageUrl . '&page=' . $pageNumber) ?>"><?= $pageNumber ?></a></li><?php endfor; ?>
+                    <li class="page-item <?= $previewPage >= $previewPageCount ? 'disabled' : '' ?>"><a class="page-link" href="<?= $escape($previewPageUrl . '&page=' . min($previewPageCount, $previewPage + 1)) ?>" aria-label="Next page">›</a></li>
+                </ul></nav></div>
+            <?php endif; ?>
         <?php endif; ?>
     </section>
     <footer class="report-footer"><span>iTrack Zimbabwe · System-generated report</span><span><?= $escape($generatedAt ?? date('Y-m-d H:i T')) ?></span></footer>

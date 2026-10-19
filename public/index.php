@@ -1,5 +1,4 @@
 <?php
-session_start();
 require_once dirname(__DIR__) . '/app/core/Router.php';
 
 $uri = $_SERVER['REQUEST_URI'] ?? '/';

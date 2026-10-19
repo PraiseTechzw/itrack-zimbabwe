@@ -3,6 +3,7 @@
 require_once dirname(__DIR__) . '/helpers/auth.php';
 require_once dirname(__DIR__) . '/helpers/notifications.php';
 require_once dirname(__DIR__) . '/models/Permission.php';
+require_once dirname(__DIR__) . '/core/Session.php';
 
 class Controller
 {
@@ -44,9 +45,7 @@ class Controller
 
     protected function requireLogin(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
 
         if (empty($_SESSION['user'])) {
             $this->redirect('/login.php');
@@ -80,9 +79,7 @@ class Controller
 
     protected function ensureSession(): void
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
     }
 
     protected function csrfToken(): string

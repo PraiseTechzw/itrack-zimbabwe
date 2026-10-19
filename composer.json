@@ -1,5 +1,5 @@
 {
-  "name": "itrack-zimbabwe",
+  "name": "itrack-zimbabwe/itrack-zimbabwe",
   "description": "ERP-style PHP application scaffold for iTrack Zimbabwe",
   "type": "project",
   "require": {
@@ -12,6 +12,6 @@
     ]
   },
   "scripts": {
-    "post-autoload-dump": "php -r 'echo "Composer autoload ready.\\n";'"
+    "post-autoload-dump": "php -r \"echo 'Composer autoload ready.' . PHP_EOL;\""
   }
 }

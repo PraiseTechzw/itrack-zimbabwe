@@ -12,7 +12,12 @@ class Database
             $config = require dirname(__DIR__) . '/config/app.php';
             $mysqlEnabled = extension_loaded('pdo_mysql');
 
-            if ($mysqlEnabled) {
+            if ($config['db_driver'] === 'sqlite') {
+                self::$instance = self::createSqliteInstance($config);
+            } elseif ($config['db_driver'] === 'mysql' || ($config['db_driver'] === 'auto' && $mysqlEnabled)) {
+                if (!$mysqlEnabled) {
+                    throw new RuntimeException('DB_DRIVER is set to MySQL, but the PDO MySQL extension is not installed.');
+                }
                 try {
                     $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $config['db']['host'], $config['db']['port'], $config['db']['name']);
                     self::$instance = new PDO($dsn, $config['db']['user'], $config['db']['pass'], [
@@ -21,9 +26,15 @@ class Database
                         PDO::ATTR_EMULATE_PREPARES => false,
                     ]);
                 } catch (PDOException $exception) {
+                    if ($config['environment'] === 'production' || $config['db_driver'] === 'mysql') {
+                        throw new RuntimeException('Unable to connect to the configured MySQL database.', 0, $exception);
+                    }
                     self::$instance = self::createSqliteInstance($config);
                 }
             } else {
+                if ($config['environment'] === 'production' && $config['db_driver'] !== 'sqlite') {
+                    throw new RuntimeException('Production requires DB_DRIVER=mysql or an explicit DB_DRIVER=sqlite configuration.');
+                }
                 self::$instance = self::createSqliteInstance($config);
             }
 
@@ -38,14 +49,16 @@ class Database
         $projectRoot = dirname(__DIR__, 2);
         $storageDir = $projectRoot . '/storage';
         if (!is_dir($storageDir)) {
-            mkdir($storageDir, 0777, true);
+            mkdir($storageDir, 0750, true);
         }
 
         $dbPath = $storageDir . '/itrack.sqlite';
-        return new PDO('sqlite:' . $dbPath, null, null, [
+        $pdo = new PDO('sqlite:' . $dbPath, null, null, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
+        @chmod($dbPath, 0640);
+        return $pdo;
     }
 
     private static function initializeSchema(PDO $pdo): void
@@ -381,7 +394,9 @@ class Database
         )");
 
         $userCount = (int) ($pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() ?: 0);
-        if ($userCount === 0) {
+        $environment = strtolower((string) env('APP_ENV', 'development'));
+        $isProduction = in_array($environment, ['prod', 'production'], true);
+        if ($userCount === 0 && !$isProduction) {
             $hash = password_hash('password', PASSWORD_DEFAULT);
             $pdo->prepare('INSERT INTO users (name, email, password_hash, role, department, status) VALUES (?, ?, ?, ?, ?, ?)')
                 ->execute(['System Administrator', 'admin@itrack.local', $hash, 'Administrator', 'IT', 'active']);
@@ -389,6 +404,7 @@ class Database
                 ->execute(['Backup Administrator', 'admin@example.com', $hash, 'Administrator', 'IT', 'active']);
         }
 
+        if ($userCount === 0 && !$isProduction) {
         $pdo->exec("INSERT OR IGNORE INTO categories (name) VALUES ('General'), ('Electronics'), ('Office Supplies'), ('Hardware')");
         $pdo->exec("INSERT OR IGNORE INTO suppliers (company_name, contact_name, email, phone, address, status) VALUES
             ('Global Supply Co.', 'Jane Doe', 'jane.doe@example.com', '+263 77 123 4567', '1 Supply Lane, Harare', 'active'),
@@ -453,6 +469,7 @@ class Database
             ('Administrator', 1),
             ('Administrator', 2),
             ('Administrator', 3)");
+        }
     }
 
     private static function ensureProductImei(PDO $pdo): void

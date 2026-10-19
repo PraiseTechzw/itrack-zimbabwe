@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/app/models/User.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
+require_once dirname(__DIR__) . '/app/core/Session.php';
+Session::start();
 header('Content-Type: application/json; charset=utf-8');
 try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {

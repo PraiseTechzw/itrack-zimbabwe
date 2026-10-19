@@ -1,19 +1,17 @@
 <?php
 
+require_once dirname(__DIR__) . '/core/Session.php';
+
 function isLoggedIn(): bool
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    Session::start();
 
     return !empty($_SESSION['user']);
 }
 
 function currentUser(): ?array
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    Session::start();
 
     return $_SESSION['user'] ?? null;
 }

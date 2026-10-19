@@ -10,20 +10,37 @@ foreach (['total_amount', 'stock_value'] as $candidate) {
     }
 }
 $summaryTotal = 0.0;
+$summaryByCurrency = [];
 if ($summaryKey !== null) {
     foreach ($rows as $row) {
-        if (is_numeric($row[$summaryKey] ?? null)) $summaryTotal += (float) $row[$summaryKey];
+        if (!is_numeric($row[$summaryKey] ?? null)) continue;
+        $amount = (float) $row[$summaryKey];
+        $summaryTotal += $amount;
+        if (isset($row['currency'])) {
+            $currency = strtoupper((string) ($row['currency'] ?: 'USD'));
+            $summaryByCurrency[$currency] = ($summaryByCurrency[$currency] ?? 0) + $amount;
+        }
     }
+}
+$summaryDisplay = number_format($summaryTotal, 2);
+if ($summaryByCurrency) {
+    $currencyTotals = [];
+    foreach ($summaryByCurrency as $currency => $amount) {
+        $currencyTotals[] = $currency . ' ' . number_format($amount, 2);
+    }
+    $summaryDisplay = implode(' · ', $currencyTotals);
 }
 $period = (string) ($period ?? 'all');
 $reportPeriod = (string) ($reportPeriod ?? 'All available records');
 $baseUrl = '/index.php?controller=reports&action=export&type=' . urlencode((string) ($reportType ?? 'Sales summary')) . '&period=' . urlencode($period);
+if ($period === 'custom') $baseUrl .= '&start_date=' . urlencode((string) ($startDate ?? '')) . '&end_date=' . urlencode((string) ($endDate ?? ''));
 ?>
 <div class="report-toolbar d-flex justify-content-between align-items-center gap-2 flex-wrap mb-4">
     <a class="btn btn-outline-secondary" href="/index.php?controller=reports"><i class="fa-solid fa-arrow-left me-2"></i>Back to reports</a>
     <div class="d-flex gap-2">
         <a class="btn btn-outline-primary" href="<?= $escape($baseUrl) ?>&amp;format=xlsx">Download Excel</a>
         <a class="btn btn-outline-primary" href="<?= $escape($baseUrl) ?>&amp;format=pdf">Download PDF</a>
+        <a class="btn btn-outline-secondary" href="<?= $escape($baseUrl) ?>&amp;format=csv">Download CSV</a>
         <button class="btn btn-primary" type="button" onclick="window.print()"><i class="fa-solid fa-print me-2"></i>Print</button>
     </div>
 </div>
@@ -43,7 +60,7 @@ $baseUrl = '/index.php?controller=reports&action=export&type=' . urlencode((stri
         <div class="summary-card"><span>REPORT TYPE</span><strong><?= $escape($reportType ?? '') ?></strong></div>
         <div class="summary-card"><span>RECORDS</span><strong><?= number_format(count($rows)) ?></strong></div>
         <?php if ($summaryKey !== null): ?>
-            <div class="summary-card"><span><?= $escape(ucwords(str_replace('_', ' ', $summaryKey))) ?></span><strong><?= number_format($summaryTotal, 2) ?></strong></div>
+            <div class="summary-card"><span><?= $escape(ucwords(str_replace('_', ' ', $summaryKey))) ?></span><strong><?= $escape($summaryDisplay) ?></strong></div>
         <?php endif; ?>
     </section>
     <section class="report-table-section">

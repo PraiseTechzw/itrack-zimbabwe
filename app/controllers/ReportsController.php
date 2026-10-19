@@ -148,6 +148,8 @@ class ReportsController extends Controller
 			'reportType' => $type,
 			'reportPeriod' => $type === 'Inventory valuation' ? 'Current stock snapshot' : $periodLabels[$period],
 			'period' => $period,
+			'startDate' => $startDate,
+			'endDate' => $endDate,
 			'rows' => ReportFormatter::rows($this->model->exportRows($type, $period, $startDate, $endDate)),
 			'generatedAt' => date('Y-m-d H:i T'),
 		]);

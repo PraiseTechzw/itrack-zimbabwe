@@ -134,7 +134,6 @@ class AccountingController extends Controller
                 ['label' => 'Total', 'key' => 'total_amount', 'type' => 'money'],
             ],
             'createAction' => 'invoiceCreate',
-            'editAction' => 'invoiceEdit',
             'deleteAction' => 'invoiceDelete',
         ]);
     }

@@ -7,7 +7,7 @@
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
                 <?php endif; ?>
-                <?php if ($mode === 'create'): ?><p class="text-secondary small mb-4">Paste one or more unique IMEIs. Each gets its own GPS record. The device name, model, and package apply to the whole batch; add each unit’s serial, SIM, and installation details after registration.</p><?php endif; ?>
+                <?php if ($mode === 'create'): ?><p class="text-secondary small mb-4">Enter one or more unique IMEIs. Each IMEI creates a separate GPS device record.</p><?php endif; ?>
                 <form method="post" class="row g-3">
                     <?= $this->csrfField() ?>
                     <div class="col-md-6">
@@ -23,6 +23,10 @@
                             <?php foreach (($packageTypes ?? []) as $package): ?><option value="<?= htmlspecialchars($package, ENT_QUOTES, 'UTF-8') ?>" <?= ($device['package_type'] ?? 'Basic installation') === $package ? 'selected' : '' ?>><?= htmlspecialchars($package, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label">SIM Number</label>
+                        <input type="text" name="sim_number" class="form-control" value="<?= htmlspecialchars($device['sim_number'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                    </div>
                     <?php if ($mode === 'edit'): ?>
                         <div class="col-md-6">
                             <label class="form-label">IMEI</label>
@@ -36,22 +40,6 @@
                         </div>
                     <?php endif; ?>
                     <?php if ($mode === 'edit'): ?>
-                        <div class="col-md-6">
-                            <label class="form-label">Serial</label>
-                            <input type="text" name="serial" class="form-control" value="<?= htmlspecialchars($device['serial'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">SIM Number</label>
-                            <input type="text" name="sim_number" class="form-control" value="<?= htmlspecialchars($device['sim_number'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Status</label>
-                            <select name="status" class="form-select">
-                                <option value="available" <?= isset($device['status']) && $device['status'] === 'available' ? 'selected' : '' ?>>Available</option>
-                                <option value="installed" <?= isset($device['status']) && $device['status'] === 'installed' ? 'selected' : '' ?>>Installed</option>
-                                <option value="inactive" <?= isset($device['status']) && $device['status'] === 'inactive' ? 'selected' : '' ?>>Inactive</option>
-                            </select>
-                        </div>
                         <div class="col-md-6">
                             <label class="form-label">Installed At</label>
                             <input type="datetime-local" name="installed_at" class="form-control" value="<?= htmlspecialchars(!empty($device['installed_at']) ? str_replace(' ', 'T', $device['installed_at']) : '', ENT_QUOTES, 'UTF-8') ?>">

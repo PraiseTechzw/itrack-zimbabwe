@@ -27,9 +27,10 @@ class InventoryController extends Controller
                 $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'product' => $_POST, 'deviceTypes' => $deviceTypes, 'error' => 'Invalid security token']);
                 return;
             }
-            $rawImeis = trim((string) ($_POST['imeis'] ?? $_POST['imei'] ?? ''));
-            $imeis = preg_split('/[\\s,;]+/', $rawImeis, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-            $imeis = array_values(array_unique(array_map('trim', $imeis)));
+            $submittedImeis = $_POST['imeis'] ?? $_POST['imei'] ?? [];
+            $tokens = is_array($submittedImeis) ? $submittedImeis : (preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+            $tokens = array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $tokens), static fn ($value): bool => $value !== ''));
+            $imeis = array_values(array_unique($tokens));
             $deviceType = trim((string) ($_POST['device_type'] ?? ''));
             $duplicateImeis = [];
             foreach ($imeis as $imei) {
@@ -37,18 +38,20 @@ class InventoryController extends Controller
                     $duplicateImeis[] = $imei;
                 }
             }
-            $hasInputDuplicates = count($imeis) !== count(preg_split('/[\\s,;]+/', $rawImeis, -1, PREG_SPLIT_NO_EMPTY) ?: []);
-            if (!in_array($deviceType, $deviceTypes, true) || count($imeis) === 0 || $hasInputDuplicates || $duplicateImeis !== []) {
+            $hasInputDuplicates = count($imeis) !== count($tokens);
+            $invalidImeis = array_filter($imeis, static fn ($imei): bool => !preg_match('/^\\d{15}$/', $imei));
+            if (!in_array($deviceType, $deviceTypes, true) || count($imeis) === 0 || $hasInputDuplicates || $invalidImeis !== [] || $duplicateImeis !== []) {
+                $error = !in_array($deviceType, $deviceTypes, true) ? 'Choose a valid device type.'
+                    : (count($imeis) === 0 ? 'Enter at least one device IMEI.'
+                        : ($hasInputDuplicates ? 'The IMEI list contains duplicates. Each device must have a unique IMEI.'
+                            : ($invalidImeis !== [] ? 'Each IMEI must contain exactly 15 digits.'
+                                : 'One or more IMEIs are already registered: ' . implode(', ', $duplicateImeis))));
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
                     'product' => $_POST,
                     'deviceTypes' => $deviceTypes,
-                    'error' => !in_array($deviceType, $deviceTypes, true)
-                        ? 'Choose a valid device type.'
-                        : (count($imeis) === 0 ? 'Enter at least one device IMEI.'
-                            : ($hasInputDuplicates ? 'The IMEI list contains duplicates. Each device must have a unique IMEI.'
-                                : ('Already registered IMEI' . (count($duplicateImeis) === 1 ? '' : 's') . ': ' . implode(', ', $duplicateImeis)))),
+                    'error' => $error,
                 ]);
                 return;
             }

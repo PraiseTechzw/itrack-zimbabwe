@@ -30,13 +30,18 @@
                     <?php if ($mode === 'edit'): ?>
                         <div class="col-md-6">
                             <label class="form-label">IMEI</label>
-                            <input type="text" name="imei" class="form-control" value="<?= htmlspecialchars($device['imei'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+                        <input type="text" name="imei" class="form-control" value="<?= htmlspecialchars($device['imei'] ?? '', ENT_QUOTES, 'UTF-8') ?>" inputmode="numeric" pattern="[0-9]{15}" maxlength="15" required>
                         </div>
                     <?php else: ?>
                         <div class="col-12">
-                            <label class="form-label" for="gps-imeis">Device IMEIs</label>
-                            <textarea id="gps-imeis" name="imeis" class="form-control" rows="5" placeholder="One IMEI per line, or separate with commas" inputmode="numeric" autocomplete="off" required><?= htmlspecialchars((string) ($device['imeis'] ?? $device['imei'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
-                            <div class="form-text">Each IMEI must be unique. Shared details above apply to all records in this batch.</div>
+                            <label class="form-label">Device IMEIs</label>
+                            <div id="gps-imeis" class="vstack gap-2">
+                                <?php $imeiRows = is_array($device['imeis'] ?? null) ? $device['imeis'] : (empty($device['imei']) ? [''] : [$device['imei']]); foreach ($imeiRows as $imei): ?>
+                                    <div class="input-group imei-row"><input type="text" name="imeis[]" class="form-control" value="<?= htmlspecialchars((string) $imei, ENT_QUOTES, 'UTF-8') ?>" placeholder="15-digit IMEI" inputmode="numeric" pattern="[0-9]{15}" maxlength="15" autocomplete="off" required><button class="btn btn-outline-danger remove-imei" type="button" aria-label="Remove IMEI">Remove</button></div>
+                                <?php endforeach; ?>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mt-2" id="add-gps-imei" type="button">+ Add another device</button>
+                            <div class="form-text">Enter exactly 15 digits for each unique IMEI.</div>
                         </div>
                     <?php endif; ?>
                     <?php if ($mode === 'edit'): ?>
@@ -54,3 +59,13 @@
         </div>
     </div>
 </div>
+<?php if ($mode !== 'edit'): ?><script>
+document.getElementById('add-gps-imei').addEventListener('click', () => {
+    const row = document.querySelector('#gps-imeis .imei-row').cloneNode(true);
+    row.querySelector('input').value = '';
+    document.getElementById('gps-imeis').append(row);
+});
+document.getElementById('gps-imeis').addEventListener('click', event => {
+    if (event.target.closest('.remove-imei') && document.querySelectorAll('#gps-imeis .imei-row').length > 1) event.target.closest('.imei-row').remove();
+});
+</script><?php endif; ?>

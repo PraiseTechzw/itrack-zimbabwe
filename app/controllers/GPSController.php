@@ -39,9 +39,10 @@ class GPSController extends Controller
                 return;
             }
 
-            $rawImeis = trim((string) ($_POST['imeis'] ?? $_POST['imei'] ?? ''));
-            $tokens = preg_split('/[\\s,;]+/', $rawImeis, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-            $imeis = array_values(array_unique(array_map('trim', $tokens)));
+            $submittedImeis = $_POST['imeis'] ?? $_POST['imei'] ?? [];
+            $tokens = is_array($submittedImeis) ? $submittedImeis : (preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+            $tokens = array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $tokens), static fn ($value): bool => $value !== ''));
+            $imeis = array_values(array_unique($tokens));
             $duplicateImeis = [];
             foreach ($imeis as $imei) {
                 if ($this->gpsModel->imeiExists($imei)) {
@@ -55,11 +56,19 @@ class GPSController extends Controller
                 || !in_array($_POST['package_type'] ?? '', $packageTypes, true)
                 || !in_array($_POST['status'] ?? 'available', ['available', 'installed', 'inactive'], true);
             $hasInputDuplicates = count($imeis) !== count($tokens);
-            if ($invalidFields || $imeis === [] || $hasInputDuplicates || $duplicateImeis !== []) {
-                $error = $invalidFields ? 'Enter a device name and choose valid device type, package, and status.'
-                    : ($imeis === [] ? 'Enter at least one device IMEI.'
-                        : ($hasInputDuplicates ? 'The IMEI list contains duplicates. Each device must have a unique IMEI.'
-                            : ('Already registered GPS IMEI' . (count($duplicateImeis) === 1 ? '' : 's') . ': ' . implode(', ', $duplicateImeis))));
+            $invalidImeis = array_filter($imeis, static fn ($imei): bool => !preg_match('/^\\d{15}$/', $imei));
+            if ($invalidFields || $imeis === [] || $hasInputDuplicates || $invalidImeis !== [] || $duplicateImeis !== []) {
+                if ($invalidFields) {
+                    $error = 'Enter a device name and choose valid device type, package, and status.';
+                } elseif ($imeis === []) {
+                    $error = 'Enter at least one device IMEI.';
+                } elseif ($hasInputDuplicates) {
+                    $error = 'The IMEI list contains duplicates. Each device must have a unique IMEI.';
+                } elseif ($invalidImeis !== []) {
+                    $error = 'Each IMEI must contain exactly 15 digits.';
+                } else {
+                    $error = 'One or more GPS IMEIs are already registered: ' . implode(', ', $duplicateImeis);
+                }
                 $this->view('gps/form', [
                     'title' => 'Create GPS Device', 'mode' => 'create', 'error' => $error,
                     'device' => $_POST, 'deviceTypes' => $deviceTypes, 'packageTypes' => $packageTypes,

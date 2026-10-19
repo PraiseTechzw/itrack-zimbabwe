@@ -1,7 +1,6 @@
 <?php
 
 require_once dirname(__DIR__) . '/core/Controller.php';
-require_once dirname(__DIR__) . '/helpers/logger.php';
 require_once dirname(__DIR__) . '/models/User.php';
 
 class AuthController extends Controller
@@ -22,33 +21,17 @@ class AuthController extends Controller
         }
 
         $error = '';
-        debugLog('AuthController::login start', [
-            'method' => $_SERVER['REQUEST_METHOD'] ?? 'GET',
-            'session_user_exists' => !empty($_SESSION['user']),
-        ]);
-
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = $this->sanitize($_POST['email'] ?? '');
             $password = (string) ($_POST['password'] ?? '');
 
-            debugLog('AuthController::login form submitted', [
-                'email' => $email,
-                'csrf_token' => $_POST['csrf_token'] ?? null,
-            ]);
-
             if (!$this->validateCsrf()) {
-                debugLog('AuthController::login invalid CSRF', [
-                    'session_csrf' => $_SESSION['csrf_token'] ?? null,
-                    'posted_csrf' => $_POST['csrf_token'] ?? null,
-                ]);
                 $error = 'Invalid security token.';
             } else {
                 $user = $this->userModel->authenticate($email, $password);
                 if ($user) {
-                    debugLog('AuthController::login success', [
-                        'email' => $email,
-                        'user_id' => $user['id'] ?? null,
-                    ]);
+                    session_regenerate_id(true);
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
                     $_SESSION['user'] = $user;
                     $_SESSION['user']['logged_in_at'] = date('Y-m-d H:i:s');
                     $userId = (int) ($user['id'] ?? 0);
@@ -58,9 +41,6 @@ class AuthController extends Controller
                     $this->redirect('/dashboard.php');
                 }
 
-                debugLog('AuthController::login invalid credentials', [
-                    'email' => $email,
-                ]);
                 $error = 'Invalid credentials';
             }
         }
@@ -73,6 +53,17 @@ class AuthController extends Controller
         $this->ensureSession();
         session_unset();
         session_destroy();
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'],
+                'domain' => $params['domain'],
+                'secure' => $params['secure'],
+                'httponly' => $params['httponly'],
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
+        }
         $this->redirect('/login.php');
     }
 
@@ -81,6 +72,12 @@ class AuthController extends Controller
         $this->ensureSession();
         if (!empty($_SESSION['user'])) {
             $this->redirect('/dashboard.php');
+        }
+        $config = require dirname(__DIR__) . '/config/app.php';
+        if (empty($config['allow_registration'])) {
+            http_response_code(404);
+            $this->view('errors/404', ['title' => 'Page not found']);
+            return;
         }
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

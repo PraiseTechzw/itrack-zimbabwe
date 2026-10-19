@@ -6,31 +6,11 @@ class User extends Model
 {
     public function authenticate(string $email, string $password): ?array
     {
-        $sql = 'SELECT * FROM users WHERE email = :email LIMIT 1';
+        $sql = "SELECT * FROM users WHERE email = :email AND status = 'active' LIMIT 1";
         $user = $this->fetchOne($sql, [':email' => $email]);
-
-        debugLog('User::authenticate called', [
-            'email' => $email,
-            'user_found' => $user !== null,
-            'user_id' => $user['id'] ?? null,
-            'password_hash_present' => isset($user['password_hash']),
-        ]);
-
-        if (!$user) {
-            debugLog('User::authenticate no user', ['email' => $email]);
-            return null;
-        }
-
-        if (!password_verify($password, $user['password_hash'])) {
-            debugLog('User::authenticate bad password', [
-                'email' => $email,
-                'user_id' => $user['id'],
-            ]);
-            return null;
-        }
+        if (!$user || !password_verify($password, $user['password_hash'])) return null;
 
         unset($user['password_hash']);
-        debugLog('User::authenticate success', ['email' => $email, 'user_id' => $user['id']]);
         return $user;
     }
 

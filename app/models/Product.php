@@ -21,11 +21,12 @@ class Product extends Model
 
     public function create(array $data): string
     {
-        $sql = 'INSERT INTO products (name, sku, imei, device_type, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :imei, :device_type, :category_id, :unit, :cost_price, :selling_price, 1, 0, :status, CURRENT_TIMESTAMP)';
+        $sql = 'INSERT INTO products (name, sku, imei, sim_number, device_type, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :imei, :sim_number, :device_type, :category_id, :unit, :cost_price, :selling_price, 1, 0, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':name' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
             ':sku' => trim((string) ($data['imei'] ?? '')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
+            ':sim_number' => trim((string) ($data['sim_number'] ?? '')),
             ':device_type' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
             ':category_id' => !empty($data['category_id']) ? (int) $data['category_id'] : null,
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),
@@ -36,12 +37,13 @@ class Product extends Model
         return $this->lastInsertId();
     }
 
-    public function createMany(array $imeis, array $data): void
+    public function createMany(array $devices, array $data): void
     {
         $this->db->beginTransaction();
         try {
-            foreach ($imeis as $imei) {
-                $data['imei'] = $imei;
+            foreach ($devices as $device) {
+                $data['imei'] = $device['imei'];
+                $data['sim_number'] = $device['sim_number'];
                 $this->create($data);
             }
             $this->db->commit();
@@ -55,11 +57,12 @@ class Product extends Model
 
     public function update(int $id, array $data): void
     {
-        $sql = 'UPDATE products SET name = :name, sku = CASE WHEN imei IS NOT NULL THEN :sku ELSE sku END, imei = :imei, device_type = :device_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, status = :status WHERE id = :id';
+        $sql = 'UPDATE products SET name = :name, sku = CASE WHEN imei IS NOT NULL THEN :sku ELSE sku END, imei = :imei, sim_number = :sim_number, device_type = :device_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, status = :status WHERE id = :id';
         $this->execute($sql, [
             ':name' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
             ':sku' => trim((string) ($data['imei'] ?? '')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
+            ':sim_number' => trim((string) ($data['sim_number'] ?? '')),
             ':device_type' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
             ':category_id' => !empty($data['category_id']) ? (int) $data['category_id'] : null,
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),

@@ -40,8 +40,19 @@ class GPSController extends Controller
             }
 
             $submittedImeis = $_POST['imeis'] ?? $_POST['imei'] ?? [];
-            $tokens = is_array($submittedImeis) ? $submittedImeis : (preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: []);
-            $tokens = array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $tokens), static fn ($value): bool => $value !== ''));
+            $simNumbers = $_POST['sim_numbers'] ?? [];
+            if (!is_array($submittedImeis)) {
+                $submittedImeis = preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                $simNumbers = array_fill(0, count($submittedImeis), (string) ($_POST['sim_number'] ?? ''));
+            }
+            $rows = [];
+            foreach ($submittedImeis as $index => $value) {
+                $imeiValue = trim((string) $value);
+                if ($imeiValue !== '') {
+                    $rows[] = ['imei' => $imeiValue, 'sim_number' => trim((string) ($simNumbers[$index] ?? ''))];
+                }
+            }
+            $tokens = array_column($rows, 'imei');
             $imeis = array_values(array_unique($tokens));
             $duplicateImeis = [];
             foreach ($imeis as $imei) {
@@ -51,15 +62,14 @@ class GPSController extends Controller
             }
             $deviceTypes = GPSDevice::deviceTypes();
             $packageTypes = GPSDevice::packageTypes();
-            $invalidFields = trim((string) ($_POST['device_name'] ?? '')) === ''
-                || !in_array($_POST['device_type'] ?? '', $deviceTypes, true)
+            $invalidFields = !in_array($_POST['device_type'] ?? '', $deviceTypes, true)
                 || !in_array($_POST['package_type'] ?? '', $packageTypes, true)
                 || !in_array($_POST['status'] ?? 'available', ['available', 'installed', 'inactive'], true);
             $hasInputDuplicates = count($imeis) !== count($tokens);
             $invalidImeis = array_filter($imeis, static fn ($imei): bool => !preg_match('/^\\d{15}$/', $imei));
             if ($invalidFields || $imeis === [] || $hasInputDuplicates || $invalidImeis !== [] || $duplicateImeis !== []) {
                 if ($invalidFields) {
-                    $error = 'Enter a device name and choose valid device type, package, and status.';
+                    $error = 'Choose a valid device name/type, package, and status.';
                 } elseif ($imeis === []) {
                     $error = 'Enter at least one device IMEI.';
                 } elseif ($hasInputDuplicates) {
@@ -76,7 +86,7 @@ class GPSController extends Controller
                 return;
             }
 
-            $this->gpsModel->createMany($imeis, $_POST);
+            $this->gpsModel->createMany($rows, $_POST);
             $this->redirect('/index.php?controller=gps');
         }
 

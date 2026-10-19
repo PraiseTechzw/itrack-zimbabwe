@@ -30,7 +30,8 @@
                                         <?php
                                             $value = $item[$column['key']] ?? '';
                                             if (($column['type'] ?? '') === 'money') {
-                                                echo '$' . number_format((float) $value, 2);
+                                                $currency = (($section ?? '') === 'invoices') ? strtoupper((string) ($item['currency'] ?? 'USD')) . ' ' : '$';
+                                                echo htmlspecialchars($currency, ENT_QUOTES, 'UTF-8') . number_format((float) $value, 2);
                                             } else {
                                                 echo htmlspecialchars((string) $value);
                                             }

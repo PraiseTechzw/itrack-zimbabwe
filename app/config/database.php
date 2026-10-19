@@ -114,6 +114,7 @@ class Database
             name TEXT NOT NULL,
             sku TEXT NOT NULL UNIQUE,
             imei TEXT UNIQUE,
+            sim_number TEXT,
             device_type TEXT NOT NULL DEFAULT 'Galileosky 7x',
             unit TEXT DEFAULT 'pcs',
             cost_price REAL DEFAULT 0,
@@ -469,6 +470,9 @@ class Database
         $existingColumns = array_column($columns, 'name');
         if (!in_array('device_type', $existingColumns, true)) {
             $pdo->exec("ALTER TABLE products ADD COLUMN device_type TEXT NOT NULL DEFAULT 'Galileosky 7x'");
+        }
+        if (!in_array('sim_number', $existingColumns, true)) {
+            $pdo->exec('ALTER TABLE products ADD COLUMN sim_number TEXT');
         }
     }
 

@@ -42,12 +42,13 @@
 				<?= $this->csrfField() ?>
 				<input class="form-control" name="report_name" placeholder="Report name" required>
 				<select class="form-select" id="report-type" name="report_type" aria-label="Report type" required><?php foreach (($reportTypes ?? []) as $type): ?><option value="<?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($type, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select>
+				<label class="form-label mb-0" for="report-period">Reporting period</label>
+				<select class="form-select" id="report-period" name="period" required><?php foreach (($reportPeriods ?? []) as $key => $label): ?><option value="<?= htmlspecialchars($key, ENT_QUOTES, 'UTF-8') ?>" <?= $key === 'custom' ? 'selected' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></option><?php endforeach; ?></select>
 				<fieldset class="row g-2 border-0 p-0 m-0" id="report-date-range">
-					<legend class="form-label mb-0">Reporting period</legend>
 					<div class="col-sm-6"><label class="form-label mb-1" for="report-start-date">Start date</label><input class="form-control" type="date" id="report-start-date" name="start_date"></div>
 					<div class="col-sm-6"><label class="form-label mb-1" for="report-end-date">End date</label><input class="form-control" type="date" id="report-end-date" name="end_date"></div>
 				</fieldset>
-				<div class="form-text" id="report-date-help">Choose a start and end date from the calendars. The available range follows records for the selected report type. Inventory valuation is always a current stock snapshot.</div>
+				<div class="form-text" id="report-date-help">Choose a reporting period. Custom ranges must fall within the available dates. Inventory valuation is always a current stock snapshot.</div>
 				<button class="btn btn-primary">Save report</button>
 			</form>
 		</div></div>
@@ -68,6 +69,7 @@
 					<tr><td><?= htmlspecialchars($r['report_name']) ?></td><td><?= htmlspecialchars($r['report_type']) ?></td><td><?= htmlspecialchars($period) ?></td><td><?= htmlspecialchars($r['generated_by_name'] ?? 'System') ?></td><td><?= htmlspecialchars($r['generated_at']) ?></td><td>
 						<a class="btn btn-sm btn-outline-primary" href="?controller=reports&amp;action=preview<?= $reportTypeQuery . $reportPeriodQuery ?>">Preview</a>
 						<a class="btn btn-sm btn-outline-primary" href="?controller=reports&amp;action=export<?= $reportTypeQuery . $reportPeriodQuery ?>&amp;format=xlsx">Excel (.xlsx)</a>
+						<a class="btn btn-sm btn-outline-secondary" href="?controller=reports&amp;action=export<?= $reportTypeQuery . $reportPeriodQuery ?>&amp;format=csv">CSV</a>
 						<a class="btn btn-sm btn-outline-secondary" target="_blank" href="?controller=reports&amp;action=export<?= $reportTypeQuery . $reportPeriodQuery ?>&amp;format=pdf">PDF</a>
 					</td></tr>
 				<?php endforeach; ?>
@@ -80,19 +82,22 @@
 	const reportType = document.getElementById('report-type');
 	const startDate = document.getElementById('report-start-date');
 	const endDate = document.getElementById('report-end-date');
+	const period = document.getElementById('report-period');
 	const dateHelp = document.getElementById('report-date-help');
 	const dateBounds = <?= json_encode($reportDateBounds ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
 	const today = <?= json_encode($reportToday ?? date('Y-m-d')) ?>;
 
 	const updateDateFields = () => {
-		const isDatedReport = reportType.value !== 'Inventory valuation';
-		startDate.disabled = !isDatedReport;
-		endDate.disabled = !isDatedReport;
-		startDate.required = isDatedReport;
-		endDate.required = isDatedReport;
-		dateHelp.textContent = isDatedReport
-			? 'Choose a start and end date from the calendars. The available range follows records for the selected report type.'
-			: 'Inventory valuation is always a current stock snapshot.';
+		const isInventory = reportType.value === 'Inventory valuation';
+		const isCustom = !isInventory && period.value === 'custom';
+		period.disabled = isInventory;
+		startDate.disabled = !isCustom;
+		endDate.disabled = !isCustom;
+		startDate.required = isCustom;
+		endDate.required = isCustom;
+		dateHelp.textContent = isInventory
+			? 'Inventory valuation is always a current stock snapshot.'
+			: (isCustom ? 'Choose a start and end date within the available records.' : 'The selected period is calculated from the current date.');
 		const bounds = dateBounds[reportType.value] || { min: today, max: today };
 		if (startDate.value && startDate.value < bounds.min) startDate.value = bounds.min;
 		if (startDate.value && startDate.value > bounds.max) startDate.value = bounds.max;
@@ -105,6 +110,7 @@
 	};
 
 	reportType.addEventListener('change', updateDateFields);
+	period.addEventListener('change', updateDateFields);
 	startDate.addEventListener('change', () => {
 		endDate.min = startDate.value || startDate.min;
 		if (endDate.value && endDate.value < endDate.min) endDate.value = endDate.min;

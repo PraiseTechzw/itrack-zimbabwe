@@ -96,6 +96,7 @@ class AccountingController extends Controller
         $summaries = [
             'invoices' => $this->invoiceModel->countInvoices(),
             'invoice_total' => $this->invoiceModel->totalAmount(),
+            'invoice_totals_by_currency' => $this->invoiceModel->totalsByCurrency(),
             'payments' => $this->paymentModel->countPayments(),
             'payment_total' => $this->paymentModel->totalAmount(),
             'expenses' => $this->expenseModel->countExpenses(),

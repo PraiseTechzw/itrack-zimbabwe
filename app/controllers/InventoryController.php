@@ -28,9 +28,18 @@ class InventoryController extends Controller
                 return;
             }
             $submittedImeis = $_POST['imeis'] ?? $_POST['imei'] ?? [];
-            $tokens = is_array($submittedImeis) ? $submittedImeis : (preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+            $simNumbers = $_POST['sim_numbers'] ?? [];
+            $imeiRows = is_array($submittedImeis) ? $submittedImeis : (preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+            $tokens = $imeiRows;
             $tokens = array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $tokens), static fn ($value): bool => $value !== ''));
             $imeis = array_values(array_unique($tokens));
+            $devices = [];
+            foreach ($imeiRows as $index => $submittedImei) {
+                $imei = trim((string) $submittedImei);
+                if ($imei !== '') {
+                    $devices[] = ['imei' => $imei, 'sim_number' => trim((string) ($simNumbers[$index] ?? ''))];
+                }
+            }
             $deviceType = trim((string) ($_POST['device_type'] ?? ''));
             $duplicateImeis = [];
             foreach ($imeis as $imei) {
@@ -55,7 +64,7 @@ class InventoryController extends Controller
                 ]);
                 return;
             }
-            $this->productModel->createMany($imeis, $_POST);
+            $this->productModel->createMany($devices, $_POST);
             $this->redirect('/index.php?controller=inventory');
         }
 

@@ -1,7 +1,9 @@
 <?php
 $title = 'Accounting';
+$invoiceCurrencyTotals = array_map(static fn (array $row): string => htmlspecialchars((string) $row['currency'], ENT_QUOTES, 'UTF-8') . ' ' . number_format((float) $row['total'], 2), $summaries['invoice_totals_by_currency'] ?? []);
+$invoiceTotalLabel = $invoiceCurrencyTotals ? implode(' · ', $invoiceCurrencyTotals) : 'USD 0.00';
 $summaryCards = [
-    ['label' => 'Invoiced', 'value' => '$' . number_format((float) ($summaries['invoice_total'] ?? 0), 2), 'meta' => number_format((int) ($summaries['invoices'] ?? 0)) . ' invoices', 'icon' => 'fa-file-invoice', 'tone' => '#4f46e5', 'href' => 'invoices'],
+    ['label' => 'Invoiced', 'value' => $invoiceTotalLabel, 'meta' => number_format((int) ($summaries['invoices'] ?? 0)) . ' invoices · totals shown by currency', 'icon' => 'fa-file-invoice', 'tone' => '#4f46e5', 'href' => 'invoices'],
     ['label' => 'Payments received', 'value' => '$' . number_format((float) ($summaries['payment_total'] ?? 0), 2), 'meta' => number_format((int) ($summaries['payments'] ?? 0)) . ' payments', 'icon' => 'fa-arrow-down-to-bracket', 'tone' => '#16845b', 'href' => 'payments'],
     ['label' => 'Expenses', 'value' => '$' . number_format((float) ($summaries['expense_total'] ?? 0), 2), 'meta' => number_format((int) ($summaries['expenses'] ?? 0)) . ' expense records', 'icon' => 'fa-arrow-up-from-bracket', 'tone' => '#bd3f45', 'href' => 'expenses'],
     ['label' => 'Cash book balance', 'value' => '$' . number_format((float) ($summaries['cash_balance'] ?? 0), 2), 'meta' => 'Latest recorded balance', 'icon' => 'fa-book-open', 'tone' => '#b7791f', 'href' => 'cashBook'],
@@ -80,7 +82,7 @@ $accountingWorkflows = [
                                         <td class="fw-semibold"><?= htmlspecialchars($invoice['invoice_number'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><?= htmlspecialchars($invoice['due_date'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><span class="badge text-bg-light"><?= htmlspecialchars(ucfirst((string) ($invoice['status'] ?? '')), ENT_QUOTES, 'UTF-8') ?></span></td>
-                                        <td class="text-end">$<?= number_format((float) ($invoice['total_amount'] ?? 0), 2) ?></td>
+                                        <td class="text-end"><?= htmlspecialchars(strtoupper((string) ($invoice['currency'] ?? 'USD')), ENT_QUOTES, 'UTF-8') ?> <?= number_format((float) ($invoice['total_amount'] ?? 0), 2) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>

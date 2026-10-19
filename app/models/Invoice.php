@@ -118,5 +118,9 @@ class Invoice extends Model
     public function delete(int $id): void { $this->execute('DELETE FROM invoices WHERE id = :id', [':id' => $id]); }
     public function countInvoices(): int { return (int) ($this->fetchOne('SELECT COUNT(*) AS total FROM invoices')['total'] ?? 0); }
     public function totalAmount(): float { return (float) ($this->fetchOne('SELECT SUM(total_amount) AS total FROM invoices')['total'] ?? 0.0); }
+    public function totalsByCurrency(): array
+    {
+        return $this->fetchAll("SELECT UPPER(COALESCE(NULLIF(currency, ''), 'USD')) AS currency, SUM(total_amount) AS total FROM invoices GROUP BY UPPER(COALESCE(NULLIF(currency, ''), 'USD')) ORDER BY currency");
+    }
     public function recent(int $limit = 5): array { return $this->fetchAll('SELECT * FROM invoices ORDER BY created_at DESC LIMIT ' . (int) $limit); }
 }

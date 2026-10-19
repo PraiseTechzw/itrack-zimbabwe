@@ -26,7 +26,7 @@ class GPSDevice extends Model
     {
         $sql = 'INSERT INTO gps_devices (device_name, device_type, package_type, imei, serial, sim_number, status, installed_at, created_at) VALUES (:device_name, :device_type, :package_type, :imei, :serial, :sim_number, :status, :installed_at, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
-            ':device_name' => trim((string) ($data['device_name'] ?? '')),
+            ':device_name' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
             ':device_type' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
             ':package_type' => trim((string) ($data['package_type'] ?? 'Basic installation')),
             ':imei' => trim((string) ($data['imei'] ?? '')),
@@ -38,12 +38,13 @@ class GPSDevice extends Model
         return $this->lastInsertId();
     }
 
-    public function createMany(array $imeis, array $data): void
+    public function createMany(array $devices, array $data): void
     {
         $this->db->beginTransaction();
         try {
-            foreach ($imeis as $imei) {
-                $data['imei'] = $imei;
+            foreach ($devices as $device) {
+                $data['imei'] = $device['imei'];
+                $data['sim_number'] = $device['sim_number'];
                 $this->create($data);
             }
             $this->db->commit();
@@ -70,7 +71,7 @@ class GPSDevice extends Model
     {
         $sql = 'UPDATE gps_devices SET device_name = :device_name, device_type = :device_type, package_type = :package_type, imei = :imei, serial = :serial, sim_number = :sim_number, status = :status, installed_at = :installed_at WHERE id = :id';
         $this->execute($sql, [
-            ':device_name' => trim((string) ($data['device_name'] ?? '')),
+            ':device_name' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
             ':device_type' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
             ':package_type' => trim((string) ($data['package_type'] ?? 'Basic installation')),
             ':imei' => trim((string) ($data['imei'] ?? '')),

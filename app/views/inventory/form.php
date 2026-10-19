@@ -18,6 +18,7 @@
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php if ($mode === 'edit'): ?><div class="col-md-6"><label class="form-label" for="product-sim-number">SIM Number</label><input type="text" id="product-sim-number" name="sim_number" class="form-control" value="<?= htmlspecialchars($product['sim_number'] ?? '', ENT_QUOTES, 'UTF-8') ?>"></div><?php endif; ?>
                     <?php if ($mode === 'edit'): ?>
                     <div class="col-md-6">
                         <label class="form-label" for="product-imei">IMEI</label>
@@ -35,6 +36,16 @@
                         <div class="form-text">Enter exactly 15 digits for each unique IMEI.</div>
                     </div>
                     <?php endif; ?>
+                    <?php if ($mode !== 'edit'): ?><div class="col-12">
+                        <label class="form-label">SIM Numbers</label>
+                        <div id="inventory-sims" class="vstack gap-2">
+                            <?php $simRows = is_array($product['sim_numbers'] ?? null) ? $product['sim_numbers'] : ['']; foreach ($simRows as $sim): ?>
+                                <div class="input-group sim-row"><input type="text" name="sim_numbers[]" class="form-control" value="<?= htmlspecialchars((string) $sim, ENT_QUOTES, 'UTF-8') ?>" placeholder="SIM number"><button class="btn btn-outline-danger remove-sim" type="button">Remove</button></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" id="add-inventory-sim" type="button">+ Add another SIM number</button>
+                        <div class="form-text">SIM numbers are assigned to device records in the order entered.</div>
+                    </div><?php endif; ?>
                     <div class="col-md-6">
                         <label class="form-label">Cost Price</label>
                         <input type="number" step="0.01" name="cost_price" class="form-control" value="<?= htmlspecialchars((string) ($product['cost_price'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
@@ -60,5 +71,13 @@ document.getElementById('add-inventory-imei').addEventListener('click', () => {
 });
 document.getElementById('inventory-imeis').addEventListener('click', event => {
     if (event.target.closest('.remove-imei') && document.querySelectorAll('#inventory-imeis .imei-row').length > 1) event.target.closest('.imei-row').remove();
+});
+document.getElementById('add-inventory-sim').addEventListener('click', () => {
+    const row = document.querySelector('#inventory-sims .sim-row').cloneNode(true);
+    row.querySelector('input').value = '';
+    document.getElementById('inventory-sims').append(row);
+});
+document.getElementById('inventory-sims').addEventListener('click', event => {
+    if (event.target.closest('.remove-sim') && document.querySelectorAll('#inventory-sims .sim-row').length > 1) event.target.closest('.sim-row').remove();
 });
 </script><?php endif; ?>

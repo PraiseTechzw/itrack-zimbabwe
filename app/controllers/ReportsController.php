@@ -159,10 +159,10 @@ class ReportsController extends Controller
 		if ($_SERVER['REQUEST_METHOD'] === 'POST' && $this->validateCsrf()) {
 			$data = $_POST;
 			$type = $this->normalizeReportType((string) ($data['report_type'] ?? 'Sales summary'));
-			$period = $type === 'Inventory valuation' ? 'all' : 'custom';
+			$period = $type === 'Inventory valuation' ? 'all' : $this->normalizeReportPeriod((string) ($data['period'] ?? 'custom'));
 			$startDate = (string) ($data['start_date'] ?? '');
 			$endDate = (string) ($data['end_date'] ?? '');
-			if ($type !== 'Inventory valuation') {
+			if ($type !== 'Inventory valuation' && $period === 'custom') {
 				$error = $this->customPeriodError($type, $startDate, $endDate);
 				if ($error !== null) {
 					$_SESSION['report_error'] = $error;
@@ -170,7 +170,7 @@ class ReportsController extends Controller
 				}
 			}
 			$data['filters'] = ['period' => $period];
-			if ($type !== 'Inventory valuation') {
+			if ($type !== 'Inventory valuation' && $period === 'custom') {
 				$data['filters']['start_date'] = $startDate;
 				$data['filters']['end_date'] = $endDate;
 			}

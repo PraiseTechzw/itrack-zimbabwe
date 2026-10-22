@@ -7,3 +7,4 @@ Apply MySQL migrations once to existing production databases before deploying co
 Apply `20261019_inventory_product_sim_number.sql` to add the optional SIM number field to existing inventory device records.
 Apply `20261019_password_reset_tokens.sql` to enable secure, expiring password-reset links for existing MySQL installations.
 Apply `20261022_installations_inventory_invoices.sql` before deploying the stock-backed installation and installation invoice flows to an existing MySQL database.
+Apply `20261022_merge_lines_into_sim_cards.sql` to group mobile lines with SIM card inventory. Existing Econet and NetOne products keep their types and quantities.

@@ -515,6 +515,7 @@ class Database
         foreach (['item_category' => "TEXT NOT NULL DEFAULT 'Tracker'", 'item_type' => "TEXT NOT NULL DEFAULT 'Teltonika FMB920'"] as $name => $definition) {
             if (!in_array($name, $existing, true)) $pdo->exec("ALTER TABLE products ADD COLUMN {$name} {$definition}");
         }
+        $pdo->exec("UPDATE products SET item_category = 'Sim cards' WHERE item_category = 'Line'");
         $cols = $pdo->query('PRAGMA table_info(gps_devices)')->fetchAll();
         $gpsExisting = array_column($cols, 'name');
         foreach (['tracker_product_id' => 'INTEGER', 'fls_product_id' => 'INTEGER', 'camera_product_id' => 'INTEGER', 'sim_product_id' => 'INTEGER', 'fls_serial' => 'TEXT', 'camera_serial' => 'TEXT'] as $name => $definition) {

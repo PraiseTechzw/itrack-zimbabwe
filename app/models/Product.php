@@ -6,7 +6,7 @@ class Product extends Model
 {
     public static function itemTypes(): array
     {
-        return ['FLS' => ['Escort', 'Dominator'], 'Cameras' => ['FT Cloud', 'IVMS'], 'Sim cards' => ['SIM card'], 'Line' => ['Econet', 'NetOne'], 'Tracker' => ['Teltonika FMB920', 'Galileosky 7x', 'Galileosky 10x', 'SmartS-24xx']];
+        return ['FLS' => ['Escort', 'Dominator'], 'Cameras' => ['FT Cloud', 'IVMS'], 'Sim cards' => ['SIM card', 'Econet', 'NetOne'], 'Tracker' => ['Teltonika FMB920', 'Galileosky 7x', 'Galileosky 10x', 'SmartS-24xx']];
     }
     public static function categories(): array { return array_keys(self::itemTypes()); }
     public static function deviceTypes(): array { return self::itemTypes()['Tracker']; }

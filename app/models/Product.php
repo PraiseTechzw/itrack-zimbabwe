@@ -16,9 +16,9 @@ class Product extends Model
         return $this->fetchAll('SELECT * FROM products ORDER BY item_category, item_type');
     }
 
-    public function availableForInstallation(string $category): array
+    public function availableForInstallation(string $category, int $includeId = 0): array
     {
-        return $this->fetchAll('SELECT * FROM products WHERE item_category = :category AND status = \'active\' AND opening_stock > 0 ORDER BY item_type', [':category' => $category]);
+        return $this->fetchAll('SELECT * FROM products WHERE item_category = :category AND (status = \'active\' AND opening_stock > 0 OR id = :include_id) ORDER BY item_type', [':category' => $category, ':include_id' => $includeId]);
     }
 
     public function find(int $id): ?array
@@ -87,6 +87,11 @@ class Product extends Model
     public function consume(int $id, int $quantity = 1): void
     {
         if ($this->execute('UPDATE products SET opening_stock = opening_stock - :qty WHERE id = :id AND opening_stock >= :qty', [':qty' => $quantity, ':id' => $id]) < 1) throw new InvalidArgumentException('The selected inventory item is no longer in stock.');
+    }
+
+    public function restore(int $id, int $quantity = 1): void
+    {
+        if ($id > 0 && $quantity > 0) $this->execute('UPDATE products SET opening_stock = opening_stock + :qty WHERE id = :id', [':qty' => $quantity, ':id' => $id]);
     }
 
     public function imeiExists(string $imei, ?int $excludeId = null): bool

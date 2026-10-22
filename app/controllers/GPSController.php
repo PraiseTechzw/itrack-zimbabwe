@@ -105,7 +105,37 @@ class GPSController extends Controller
     public function edit(): void
     {
         $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
-        $this->redirect('/index.php?controller=gps');
+        $id = $this->sanitizeInt($_GET['id'] ?? 0);
+        $device = $this->gpsModel->find($id);
+        if (!$device) { $this->redirect('/index.php?controller=gps'); return; }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->validateCsrf()) {
+                $merged = array_merge($device, $_POST);
+                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'Invalid security token']);
+                return;
+            }
+            $package = (string)($_POST['package_type'] ?? '');
+            $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
+            $needsCamera = $package === 'Basic + FLS + Camera';
+            $invalid = !in_array($package, GPSDevice::packageTypes(), true) || (int)($_POST['tracker_product_id'] ?? 0) < 1 || ($needsFls && (int)($_POST['fls_product_id'] ?? 0) < 1) || (!$needsFls && (int)($_POST['fls_product_id'] ?? 0) > 0) || ($needsCamera && (int)($_POST['camera_product_id'] ?? 0) < 1) || (!$needsCamera && (int)($_POST['camera_product_id'] ?? 0) > 0) || !preg_match('/^\d+$/', (string)($_POST['imei'] ?? '')) || !preg_match('/^\d*$/', (string)($_POST['serial'] ?? '')) || !preg_match('/^\d*$/', (string)($_POST['fls_serial'] ?? '')) || !preg_match('/^\d*$/', (string)($_POST['camera_serial'] ?? ''));
+            $merged = array_merge($device, $_POST);
+            if ($invalid) {
+                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'Choose the equipment required by the selected package. Basic installations do not include FLS or a camera; serial numbers and IMEI must contain digits only.']);
+                return;
+            }
+            if ($this->gpsModel->imeiExists((string)$_POST['imei'], $id)) {
+                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'That IMEI is already registered.']);
+                return;
+            }
+            try { $this->gpsModel->update($id, $_POST); }
+            catch (InvalidArgumentException $e) {
+                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => $e->getMessage()]);
+                return;
+            }
+            $this->redirect('/index.php?controller=gps');
+            return;
+        }
+        $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $device, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($device)]);
     }
 
     public function delete(): void

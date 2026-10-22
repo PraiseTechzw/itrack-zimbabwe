@@ -69,6 +69,39 @@ class GPSController extends Controller
         ]);
     }
 
+    public function createBulk(): void
+    {
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
+        $choices = $this->gpsModel->inventoryChoices();
+        $packages = GPSDevice::packageTypes();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $rows = $_POST['installations'] ?? [];
+            $view = fn(string $error) => $this->view('gps/bulk', ['title' => 'Bulk installations', 'rows' => $rows, 'inventory' => $choices, 'packageTypes' => $packages, 'error' => $error]);
+            if (!$this->validateCsrf()) { $view('Invalid security token.'); return; }
+            if (!is_array($rows)) { $view('Submit one or more valid installation rows.'); return; }
+            $rows = array_values(array_filter($rows, static fn($row) => is_array($row) && (trim((string)($row['imei'] ?? '')) !== '' || (int)($row['tracker_product_id'] ?? 0) > 0 || (int)($row['fls_product_id'] ?? 0) > 0 || (int)($row['camera_product_id'] ?? 0) > 0 || (int)($row['sim_product_id'] ?? 0) > 0 || trim((string)($row['serial'] ?? '')) !== '' || trim((string)($row['fls_serial'] ?? '')) !== '' || trim((string)($row['camera_serial'] ?? '')) !== '')));
+            $imeis = [];
+            $valid = count($rows) > 0 && count($rows) <= 50;
+            foreach ($rows as $row) {
+                $imei = trim((string)($row['imei'] ?? ''));
+                $package = (string)($row['package_type'] ?? '');
+                $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
+                $needsCamera = $package === 'Basic + FLS + Camera';
+                if (!in_array($package, $packages, true) || (int)($row['tracker_product_id'] ?? 0) < 1 || ($needsFls && (int)($row['fls_product_id'] ?? 0) < 1) || (!$needsFls && (int)($row['fls_product_id'] ?? 0) > 0) || ($needsCamera && (int)($row['camera_product_id'] ?? 0) < 1) || (!$needsCamera && (int)($row['camera_product_id'] ?? 0) > 0) || !preg_match('/^\\d+$/', $imei) || !preg_match('/^\\d*$/', (string)($row['serial'] ?? '')) || !preg_match('/^\\d*$/', (string)($row['fls_serial'] ?? '')) || !preg_match('/^\\d*$/', (string)($row['camera_serial'] ?? '')) || isset($imeis[$imei]) || $this->gpsModel->imeiExists($imei)) $valid = false;
+                $imeis[$imei] = true;
+            }
+            if (!$valid) { $view('Add 1–50 rows with a unique numeric tracker IMEI and all equipment required by each package.'); return; }
+            foreach ($rows as &$row) $row['installed_at'] = trim((string)($row['installed_at'] ?? '')) ?: null;
+            unset($row);
+            try { $this->gpsModel->createMany($rows, []); }
+            catch (InvalidArgumentException $e) { $view($e->getMessage()); return; }
+            catch (Throwable $e) { $view('The batch could not be saved. Check that each IMEI is unique and there is enough stock for all selected equipment.'); return; }
+            $this->redirect('/index.php?controller=gps');
+            return;
+        }
+        $this->view('gps/bulk', ['title' => 'Bulk installations', 'inventory' => $choices, 'packageTypes' => $packages]);
+    }
+
     public function edit(): void
     {
         $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);

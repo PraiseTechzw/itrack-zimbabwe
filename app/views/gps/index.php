@@ -1,7 +1,7 @@
 <?php $title = 'Installations'; ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div><h2 class="h4 mb-1">Installations</h2><p class="text-secondary small mb-0">Record installations using equipment available in inventory.</p></div>
-    <a class="btn btn-primary" href="/index.php?controller=gps&action=create">New Installation</a>
+    <div class="d-flex gap-2"><a class="btn btn-outline-primary" href="/index.php?controller=gps&action=createBulk"><i class="fa-solid fa-layer-group me-2"></i>Bulk install</a><a class="btn btn-primary" href="/index.php?controller=gps&action=create">New Installation</a></div>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">

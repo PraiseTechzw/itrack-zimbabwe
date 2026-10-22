@@ -1,0 +1,48 @@
+<?php
+$title = 'Bulk installations';
+$inventory = $inventory ?? ['trackers' => [], 'fls' => [], 'cameras' => [], 'sims' => []];
+$packageTypes = $packageTypes ?? \GPSDevice::packageTypes();
+$rows = $rows ?? [['package_type' => 'Basic', 'installed_at' => date('Y-m-d')]];
+$esc = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+$options = static function (array $products, string $selected = '', bool $optional = false) use ($esc): string {
+    $html = $optional ? '<option value="">None</option>' : '<option value="">Choose item</option>';
+    foreach ($products as $product) {
+        $id = (string)($product['id'] ?? '');
+        $label = ($product['item_type'] ?? $product['device_type'] ?? 'Item') . ' · stock ' . (int)($product['opening_stock'] ?? 0);
+        $html .= '<option value="' . $esc($id) . '"' . ($selected === $id ? ' selected' : '') . '>' . $esc($label) . '</option>';
+    }
+    return $html;
+};
+?>
+<style>
+.install-bulk-hero{padding:22px 25px;margin-bottom:18px;border-radius:16px;background:linear-gradient(115deg,#17243d,#334d7a);color:#fff}.install-bulk-hero h1{margin:0 0 5px;font-size:23px;font-weight:800}.install-bulk-hero p{margin:0;color:#c3cee0;font-size:12px}.install-row{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;padding:15px 50px 15px 15px;border:1px solid #e7ebf1;border-radius:13px;background:#fff}.install-row+.install-row{margin-top:12px}.install-row label{font-size:10px;font-weight:700;color:#6e7c90;margin-bottom:5px}.install-row .form-control,.install-row .form-select{font-size:12px}.install-row .package-field{grid-column:span 2}.install-row .install-remove{position:absolute;right:12px;top:14px}.install-row .span-two{grid-column:span 2}@media(max-width:850px){.install-row{grid-template-columns:repeat(2,minmax(0,1fr))}.install-row .package-field{grid-column:span 2}}@media(max-width:520px){.install-row{grid-template-columns:1fr;padding-right:45px}.install-row .package-field,.install-row .span-two{grid-column:auto}}
+</style>
+<div class="install-bulk-hero"><h1>Bulk installations</h1><p>Add several installations in one go. Each row needs its own unique tracker IMEI; selected equipment is deducted from stock.</p></div>
+<div class="card border-0 shadow-sm"><div class="card-body p-3 p-lg-4">
+<?php if (!empty($error)): ?><div class="alert alert-danger" role="alert"><?= $esc($error) ?></div><?php endif; ?>
+<?php if (!$inventory['trackers']): ?><div class="alert alert-warning">There are no trackers in stock. Add tracker stock in Inventory before creating installations.</div><?php endif; ?>
+<form method="post" id="install-bulk-form"><?= $this->csrfField() ?><div id="install-rows">
+<?php foreach ($rows as $index => $row): $package = $row['package_type'] ?? 'Basic'; $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true); $needsCamera = $package === 'Basic + FLS + Camera'; ?>
+<div class="install-row">
+    <div class="package-field"><label>Package</label><select class="form-select install-package" name="installations[<?= (int)$index ?>][package_type]" required><?php foreach ($packageTypes as $type): ?><option value="<?= $esc($type) ?>" <?= $package === $type ? 'selected' : '' ?>><?= $esc($type) ?></option><?php endforeach; ?></select></div>
+    <div><label>Tracker in stock</label><select class="form-select" name="installations[<?= (int)$index ?>][tracker_product_id]" required><?= $options($inventory['trackers'], (string)($row['tracker_product_id'] ?? '')) ?></select></div>
+    <div><label>FLS (if package requires it)</label><select class="form-select install-fls" name="installations[<?= (int)$index ?>][fls_product_id]" <?= $needsFls ? 'required' : 'disabled' ?>><?= $options($inventory['fls'], (string)($row['fls_product_id'] ?? ''), true) ?></select></div>
+    <div><label>Camera (if package requires it)</label><select class="form-select install-camera" name="installations[<?= (int)$index ?>][camera_product_id]" <?= $needsCamera ? 'required' : 'disabled' ?>><?= $options($inventory['cameras'], (string)($row['camera_product_id'] ?? ''), true) ?></select></div>
+    <div><label>SIM (optional)</label><select class="form-select" name="installations[<?= (int)$index ?>][sim_product_id]"><?= $options($inventory['sims'], (string)($row['sim_product_id'] ?? ''), true) ?></select></div>
+    <div><label>Tracker IMEI</label><input class="form-control" name="installations[<?= (int)$index ?>][imei]" inputmode="numeric" pattern="[0-9]+" value="<?= $esc($row['imei'] ?? '') ?>" required></div>
+    <div><label>Tracker serial</label><input class="form-control" name="installations[<?= (int)$index ?>][serial]" inputmode="numeric" pattern="[0-9]*" value="<?= $esc($row['serial'] ?? '') ?>"></div>
+    <div><label>FLS serial</label><input class="form-control" name="installations[<?= (int)$index ?>][fls_serial]" inputmode="numeric" pattern="[0-9]*" value="<?= $esc($row['fls_serial'] ?? '') ?>"></div>
+    <div><label>Camera serial</label><input class="form-control" name="installations[<?= (int)$index ?>][camera_serial]" inputmode="numeric" pattern="[0-9]*" value="<?= $esc($row['camera_serial'] ?? '') ?>"></div>
+    <div><label>Installation date</label><input class="form-control" type="date" name="installations[<?= (int)$index ?>][installed_at]" value="<?= $esc(isset($row['installed_at']) ? substr((string)$row['installed_at'], 0, 10) : date('Y-m-d')) ?>"></div>
+    <button class="btn btn-sm btn-outline-danger install-remove" type="button" aria-label="Remove installation row"><i class="fa-solid fa-trash"></i></button>
+</div>
+<?php endforeach; ?></div>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3"><button class="btn btn-outline-primary" type="button" id="add-install-row"><i class="fa-solid fa-plus me-2"></i>Add another installation</button><div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="/index.php?controller=gps">Cancel</a><button class="btn btn-primary" type="submit" <?= !$inventory['trackers'] ? 'disabled' : '' ?>><i class="fa-solid fa-layer-group me-2"></i>Save installations</button></div></div>
+</form></div></div>
+<script>
+const installRows=document.getElementById('install-rows'),installOptions=<?= json_encode(['trackers'=>$inventory['trackers'],'fls'=>$inventory['fls'],'cameras'=>$inventory['cameras'],'sims'=>$inventory['sims'],'packages'=>$packageTypes], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT) ?>;
+function syncInstallPackage(row){const pkg=row.querySelector('.install-package').value,fls=row.querySelector('.install-fls'),camera=row.querySelector('.install-camera'),needsFls=pkg!=='Basic',needsCamera=pkg==='Basic + FLS + Camera';fls.disabled=!needsFls;fls.required=needsFls;camera.disabled=!needsCamera;camera.required=needsCamera;if(!needsFls)fls.value='';if(!needsCamera)camera.value='';}
+function optionMarkup(products,optional){return (optional?'<option value="">None</option>':'<option value="">Choose item</option>')+products.map(p=>`<option value="${p.id}">${p.item_type||p.device_type||'Item'} · stock ${p.opening_stock||0}</option>`).join('');}
+function addInstallRow(){if(installRows.children.length>=50)return;const i=Date.now()+Math.floor(Math.random()*1000),row=document.createElement('div');row.className='install-row';row.innerHTML=`<div class="package-field"><label>Package</label><select class="form-select install-package" name="installations[${i}][package_type]" required>${installOptions.packages.map(p=>`<option value="${p}">${p}</option>`).join('')}</select></div><div><label>Tracker in stock</label><select class="form-select" name="installations[${i}][tracker_product_id]" required>${optionMarkup(installOptions.trackers,false)}</select></div><div><label>FLS (if package requires it)</label><select class="form-select install-fls" name="installations[${i}][fls_product_id]" disabled>${optionMarkup(installOptions.fls,true)}</select></div><div><label>Camera (if package requires it)</label><select class="form-select install-camera" name="installations[${i}][camera_product_id]" disabled>${optionMarkup(installOptions.cameras,true)}</select></div><div><label>SIM (optional)</label><select class="form-select" name="installations[${i}][sim_product_id]">${optionMarkup(installOptions.sims,true)}</select></div><div><label>Tracker IMEI</label><input class="form-control" name="installations[${i}][imei]" inputmode="numeric" pattern="[0-9]+" required></div><div><label>Tracker serial</label><input class="form-control" name="installations[${i}][serial]" inputmode="numeric" pattern="[0-9]*"></div><div><label>FLS serial</label><input class="form-control" name="installations[${i}][fls_serial]" inputmode="numeric" pattern="[0-9]*"></div><div><label>Camera serial</label><input class="form-control" name="installations[${i}][camera_serial]" inputmode="numeric" pattern="[0-9]*"></div><div><label>Installation date</label><input class="form-control" type="date" name="installations[${i}][installed_at]" value="${new Date().toISOString().slice(0,10)}"></div><button class="btn btn-sm btn-outline-danger install-remove" type="button" aria-label="Remove installation row"><i class="fa-solid fa-trash"></i></button>`;installRows.append(row);syncInstallPackage(row);}
+document.getElementById('add-install-row').addEventListener('click',addInstallRow);installRows.addEventListener('change',e=>{if(e.target.matches('.install-package'))syncInstallPackage(e.target.closest('.install-row'));});installRows.addEventListener('click',e=>{const button=e.target.closest('.install-remove');if(button&&installRows.children.length>1)button.closest('.install-row').remove();});installRows.querySelectorAll('.install-row').forEach(syncInstallPackage);
+</script>

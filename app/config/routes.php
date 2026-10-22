@@ -6,7 +6,7 @@ return [
     'clients' => ['controller' => 'ClientController', 'actions' => ['index', 'create', 'edit', 'delete']],
     'supplier' => ['controller' => 'SupplierController', 'actions' => ['index', 'create', 'edit', 'delete']],
     'users' => ['controller' => 'UsersController', 'actions' => ['index', 'create', 'edit', 'delete']],
-    'gps' => ['controller' => 'GPSController', 'actions' => ['index', 'create', 'edit', 'delete']],
+    'gps' => ['controller' => 'GPSController', 'actions' => ['index', 'create', 'createBulk', 'edit', 'delete']],
     'accounting' => ['controller' => 'AccountingController', 'actions' => ['index', 'invoices', 'invoiceCreate', 'invoiceEdit', 'invoicePrint', 'invoiceDelete', 'payments', 'paymentCreate', 'paymentEdit', 'paymentDelete', 'expenses', 'expenseCreate', 'expenseEdit', 'expenseDelete', 'pettyCash', 'pettyCashCreate', 'pettyCashEdit', 'pettyCashDelete', 'cashBook', 'cashBookCreate', 'cashBookEdit', 'cashBookDelete']],
     'purchases' => ['controller' => 'PurchasesController', 'actions' => ['index', 'create', 'status']],
     'sales' => ['controller' => 'SalesController', 'actions' => ['index', 'create', 'status']],

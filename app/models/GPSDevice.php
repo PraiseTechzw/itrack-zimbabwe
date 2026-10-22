@@ -30,7 +30,8 @@ class GPSDevice extends Model
         $cameraId = (int) ($data['camera_product_id'] ?? 0);
         $simId = (int) ($data['sim_product_id'] ?? 0);
         $products = new Product();
-        $this->db->beginTransaction();
+        $ownsTransaction = !$this->db->inTransaction();
+        if ($ownsTransaction) $this->db->beginTransaction();
         try {
         $tracker = $products->find($trackerId);
         if (!$tracker || (($tracker['item_category'] ?? '') !== 'Tracker')) throw new InvalidArgumentException('Select a tracker from inventory.');
@@ -55,9 +56,9 @@ class GPSDevice extends Model
         ]);
         $id = $this->lastInsertId();
         $this->execute('UPDATE gps_devices SET tracker_product_id = :tracker, fls_product_id = :fls, camera_product_id = :camera, sim_product_id = :sim, fls_serial = :fls_serial, camera_serial = :camera_serial WHERE id = :id', [':tracker' => $trackerId, ':fls' => $flsId ?: null, ':camera' => $cameraId ?: null, ':sim' => $simId ?: null, ':fls_serial' => trim((string) ($data['fls_serial'] ?? '')), ':camera_serial' => trim((string) ($data['camera_serial'] ?? '')), ':id' => $id]);
-        $this->db->commit();
+        if ($ownsTransaction) $this->db->commit();
         return $id;
-        } catch (Throwable $e) { if ($this->db->inTransaction()) $this->db->rollBack(); throw $e; }
+        } catch (Throwable $e) { if ($ownsTransaction && $this->db->inTransaction()) $this->db->rollBack(); throw $e; }
     }
 
     public function inventoryChoices(): array
@@ -70,11 +71,7 @@ class GPSDevice extends Model
     {
         $this->db->beginTransaction();
         try {
-            foreach ($devices as $device) {
-                $data['imei'] = $device['imei'];
-                $data['sim_number'] = $device['sim_number'];
-                $this->create($data);
-            }
+            foreach ($devices as $device) $this->create(array_merge($data, $device));
             $this->db->commit();
         } catch (Throwable $exception) {
             if ($this->db->inTransaction()) {

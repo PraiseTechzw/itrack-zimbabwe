@@ -10,7 +10,7 @@ The public JSON surface is available at `/api/auth.php`, `/api/inventory.php`, `
 
 ## Inventory and GPS device records
 
-**Inventory** is the stock register: it stores device type, unique IMEI, cost and selling prices, and stock quantity. **GPS Devices** is the operational tracker register: it stores IMEI, tracker model, SIM number, service package, installation date, and availability/status. Both modules can accept multiple IMEIs at once and create one record per device.
+**Inventory** is the stock register for FLS units, cameras, SIM cards, mobile lines, and trackers. Each stock item has a category, model/type, quantity, prices, and an optional numeric serial number or IMEI. **Installations** records the tracker and any package equipment used, selecting only items currently in stock and reducing inventory quantities when saved. Invoices can be created from an installation.
 
 These are currently separate records in separate tables. Registering the same physical tracker in both modules does not link or transfer it between stock and operational tracking; that lifecycle connection is not implemented yet.
 

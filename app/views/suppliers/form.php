@@ -19,15 +19,15 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($supplier['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($supplier['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Phone</label>
-                        <input type="text" name="phone" class="form-control" value="<?= htmlspecialchars($supplier['phone'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="text" name="phone" class="form-control" value="<?= htmlspecialchars($supplier['phone'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Address</label>
-                        <textarea name="address" class="form-control" rows="4"><?= htmlspecialchars($supplier['address'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                        <textarea name="address" class="form-control" rows="4" required><?= htmlspecialchars($supplier['address'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Status</label>

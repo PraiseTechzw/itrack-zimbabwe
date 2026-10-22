@@ -37,6 +37,11 @@ class SupplierController extends Controller
                 return;
             }
 
+            $error = $this->validateSupplier($_POST);
+            if ($error !== null) {
+                $this->view('suppliers/form', ['title' => 'Create Supplier', 'mode' => 'create', 'error' => $error, 'supplier' => $_POST]);
+                return;
+            }
             $this->supplierModel->create($_POST);
             $this->redirect('/index.php?controller=supplier');
         }
@@ -69,6 +74,11 @@ class SupplierController extends Controller
                 return;
             }
 
+            $error = $this->validateSupplier($_POST);
+            if ($error !== null) {
+                $this->view('suppliers/form', ['title' => 'Edit Supplier', 'mode' => 'edit', 'error' => $error, 'supplier' => array_merge($supplier, $_POST)]);
+                return;
+            }
             $this->supplierModel->update($id, $_POST);
             $this->redirect('/index.php?controller=supplier');
         }
@@ -78,6 +88,15 @@ class SupplierController extends Controller
             'mode' => 'edit',
             'supplier' => $supplier,
         ]);
+    }
+
+    private function validateSupplier(array $data): ?string
+    {
+        foreach (['company_name' => 'Company name', 'email' => 'Email', 'phone' => 'Phone number', 'address' => 'Address'] as $field => $label) {
+            if (trim((string) ($data[$field] ?? '')) === '') return $label . ' is required.';
+        }
+        if (!filter_var(trim((string) $data['email']), FILTER_VALIDATE_EMAIL)) return 'Enter a valid supplier email address.';
+        return null;
     }
 
     public function delete(): void

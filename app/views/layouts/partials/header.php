@@ -3,7 +3,7 @@ $headerUser = currentUser() ?? [];
 $headerName = $headerUser['name'] ?? 'User';
 $headerInitial = strtoupper(substr((string)$headerName, 0, 1));
 $headerController = strtolower($_GET['controller'] ?? 'dashboard');
-$headerLabels = ['dashboard'=>'Overview','inventory'=>'Inventory','clients'=>'Clients','supplier'=>'Suppliers','users'=>'Users','gps'=>'GPS Devices','accounting'=>'Accounting','purchases'=>'Purchases','sales'=>'Sales','requisition'=>'Requisitions','reports'=>'Reports','notification'=>'Notifications','settings'=>'Settings'];
+$headerLabels = ['dashboard'=>'Overview','inventory'=>'Inventory','clients'=>'Clients','supplier'=>'Suppliers','users'=>'Users','gps'=>'Installations','accounting'=>'Accounting','purchases'=>'Purchases','sales'=>'Sales','requisition'=>'Requisitions','reports'=>'Reports','notification'=>'Notifications','settings'=>'Settings'];
 $headerSection = basename($_SERVER['SCRIPT_NAME'] ?? '') === 'dashboard.php' ? 'Overview' : ($headerLabels[$headerController] ?? ucfirst($headerController));
 $headerNotificationCount = 0;
 $isDashboard = $headerController === 'dashboard' || basename($_SERVER['SCRIPT_NAME'] ?? '') === 'dashboard.php';

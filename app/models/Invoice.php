@@ -4,11 +4,15 @@ class Invoice extends Model
 {
     public function all(): array
     {
-        return $this->fetchAll('SELECT i.*, c.company_name AS client_name FROM invoices i JOIN sales s ON s.id = i.sale_id LEFT JOIN clients c ON c.id = s.client_id ORDER BY i.created_at DESC');
+        return $this->fetchAll('SELECT i.*, c.company_name AS client_name FROM invoices i LEFT JOIN sales s ON s.id = i.sale_id LEFT JOIN clients c ON c.id = s.client_id ORDER BY i.created_at DESC');
     }
     public function availableSales(): array
     {
         return $this->fetchAll('SELECT s.id, s.sale_date, s.total_amount, c.company_name AS client_name, c.email AS client_email, c.phone AS client_phone, c.address AS client_address FROM sales s LEFT JOIN clients c ON c.id = s.client_id WHERE NOT EXISTS (SELECT 1 FROM invoices i WHERE i.sale_id = s.id) ORDER BY s.sale_date DESC, s.id DESC');
+    }
+    public function availableInstallations(): array
+    {
+        return $this->fetchAll("SELECT g.id, g.device_type, g.imei, g.package_type, g.installed_at, COALESCE(t.selling_price,0)+COALESCE(f.selling_price,0)+COALESCE(c.selling_price,0)+COALESCE(sm.selling_price,0) AS selling_price FROM gps_devices g LEFT JOIN products t ON t.id=g.tracker_product_id LEFT JOIN products f ON f.id=g.fls_product_id LEFT JOIN products c ON c.id=g.camera_product_id LEFT JOIN products sm ON sm.id=g.sim_product_id WHERE NOT EXISTS (SELECT 1 FROM invoices i WHERE i.installation_id=g.id) ORDER BY g.installed_at DESC, g.id DESC");
     }
     public function find(int $id): ?array
     {
@@ -53,17 +57,31 @@ class Invoice extends Model
     public function create(array $data): string
     {
         $saleId = (int) ($data['sale_id'] ?? 0);
-        $sale = $this->fetchOne('SELECT s.id, s.total_amount, c.company_name, c.email, c.phone, c.address FROM sales s LEFT JOIN clients c ON c.id=s.client_id WHERE s.id = :id', [':id' => $saleId]);
-        if (!$sale) throw new InvalidArgumentException('Select a valid sale for this invoice.');
+        $installationId = (int) ($data['installation_id'] ?? 0);
+        $installation = $this->fetchOne('SELECT g.id, g.device_type, g.imei, g.package_type, COALESCE(t.selling_price,0)+COALESCE(f.selling_price,0)+COALESCE(c.selling_price,0)+COALESCE(sm.selling_price,0) AS selling_price FROM gps_devices g LEFT JOIN products t ON t.id=g.tracker_product_id LEFT JOIN products f ON f.id=g.fls_product_id LEFT JOIN products c ON c.id=g.camera_product_id LEFT JOIN products sm ON sm.id=g.sim_product_id WHERE g.id=:id', [':id' => $installationId]);
+        if (!$installation) throw new InvalidArgumentException('Select a valid installation for this invoice.');
+        $submittedLine = is_array($data['items'] ?? null) ? reset($data['items']) : [];
+        $data['items'] = [['quantity'=>1, 'description'=>$installation['device_type'].' installation ('.$installation['package_type'].')', 'unit_price'=>(float)($submittedLine['unit_price'] ?? $installation['selling_price'] ?? 0), 'vat_rate'=>(float)($submittedLine['vat_rate'] ?? 15.5), 'hs_code'=>'99001000']];
         $items = $this->cleanItems($data['items'] ?? []);
         $currency = strtoupper(trim((string) ($data['currency'] ?? 'USD')));
         if (!in_array($currency, ['USD', 'ZWG'], true)) $currency = 'USD';
         $invoiceNumber = 'INV S/' . date('Y') . '/' . strtoupper(bin2hex(random_bytes(3)));
-        $customerName = trim((string) ($data['customer_registered_name'] ?? '')) ?: (string) ($sale['company_name'] ?? '');
+        $customerName = trim((string) ($data['customer_registered_name'] ?? ''));
         $this->db->beginTransaction();
         try {
-            $this->execute('INSERT INTO invoices (sale_id, invoice_number, due_date, status, total_amount, currency, issue_date, reference_number, sales_person, customer_registered_name, customer_trade_name, customer_address, customer_email, customer_phone, customer_tin, customer_vat, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)', [
-                $saleId, $invoiceNumber, trim((string) ($data['due_date'] ?? date('Y-m-d'))), trim((string) ($data['status'] ?? 'unpaid')), 0, $currency, trim((string) ($data['issue_date'] ?? date('Y-m-d'))), trim((string) ($data['reference_number'] ?? $invoiceNumber)), trim((string) ($data['sales_person'] ?? '')), $customerName, trim((string) ($data['customer_trade_name'] ?? $customerName)), trim((string) ($data['customer_address'] ?? $sale['address'] ?? '')), trim((string) ($data['customer_email'] ?? $sale['email'] ?? '')), trim((string) ($data['customer_phone'] ?? $sale['phone'] ?? '')), trim((string) ($data['customer_tin'] ?? '')), trim((string) ($data['customer_vat'] ?? '')),
+            $saleIdForInvoice = null;
+            if ($this->db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $saleColumns = $this->fetchAll('PRAGMA table_info(invoices)');
+                foreach ($saleColumns as $column) {
+                    if ($column['name'] === 'sale_id' && (int) $column['notnull'] === 1) {
+                        $this->execute('INSERT INTO sales (sale_date, status, sale_type, package_type, total_amount) VALUES (?, ?, ?, ?, ?)', [date('Y-m-d'), 'completed', 'installation', $installation['package_type'], (float) ($installation['selling_price'] ?? 0)]);
+                        $saleIdForInvoice = (int) $this->lastInsertId();
+                        break;
+                    }
+                }
+            }
+            $this->execute('INSERT INTO invoices (sale_id, installation_id, invoice_number, due_date, status, total_amount, currency, issue_date, reference_number, sales_person, customer_registered_name, customer_trade_name, customer_address, customer_email, customer_phone, customer_tin, customer_vat, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)', [
+                $saleIdForInvoice, $installationId, $invoiceNumber, trim((string) ($data['due_date'] ?? date('Y-m-d'))), trim((string) ($data['status'] ?? 'unpaid')), 0, $currency, trim((string) ($data['issue_date'] ?? date('Y-m-d'))), trim((string) ($data['reference_number'] ?? $invoiceNumber)), trim((string) ($data['sales_person'] ?? '')), $customerName, trim((string) ($data['customer_trade_name'] ?? $customerName)), trim((string) ($data['customer_address'] ?? '')), trim((string) ($data['customer_email'] ?? '')), trim((string) ($data['customer_phone'] ?? '')), trim((string) ($data['customer_tin'] ?? '')), trim((string) ($data['customer_vat'] ?? '')),
             ]);
             $id = (int) $this->lastInsertId();
             $total = $this->saveItems($id, $items);
@@ -93,7 +111,7 @@ class Invoice extends Model
     }
     public function details(int $id): ?array
     {
-        $invoice = $this->fetchOne('SELECT i.*, s.sale_date, c.company_name AS client_name FROM invoices i JOIN sales s ON s.id=i.sale_id LEFT JOIN clients c ON c.id=s.client_id WHERE i.id = :id', [':id' => $id]);
+        $invoice = $this->fetchOne('SELECT i.*, s.sale_date, c.company_name AS client_name FROM invoices i LEFT JOIN sales s ON s.id=i.sale_id LEFT JOIN clients c ON c.id=s.client_id WHERE i.id = :id', [':id' => $id]);
         if (!$invoice) return null;
         $invoice['items'] = $this->fetchAll('SELECT * FROM invoice_items WHERE invoice_id=:id ORDER BY id', [':id' => $id]);
         if (!$invoice['items']) {

@@ -1,7 +1,7 @@
-<?php $title = 'GPS Devices'; ?>
+<?php $title = 'Installations'; ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <div><h2 class="h4 mb-1">GPS Devices</h2><p class="text-secondary small mb-0">Operational tracker records, including IMEI, SIM, and installation package.</p></div>
-    <a class="btn btn-primary" href="/index.php?controller=gps&action=create">New GPS Device</a>
+    <div><h2 class="h4 mb-1">Installations</h2><p class="text-secondary small mb-0">Record installations using equipment available in inventory.</p></div>
+    <a class="btn btn-primary" href="/index.php?controller=gps&action=create">New Installation</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
@@ -28,7 +28,6 @@
                             <td><?= htmlspecialchars($device['sim_number'] ?? '') ?></td>
                             <td><?= htmlspecialchars($device['installed_at'] ?? '—') ?></td>
                             <td>
-                                <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=gps&action=edit&id=<?= (int) ($device['id'] ?? 0) ?>">Edit</a>
                                 <form method="post" action="/index.php?controller=gps&action=delete" class="d-inline" data-confirm="Delete this device?">
                                     <?= $this->csrfField() ?>
                                     <input type="hidden" name="id" value="<?= (int) ($device['id'] ?? 0) ?>">

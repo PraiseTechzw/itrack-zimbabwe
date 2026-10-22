@@ -27,48 +27,27 @@ class InventoryController extends Controller
                 $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'product' => $_POST, 'deviceTypes' => $deviceTypes, 'error' => 'Invalid security token']);
                 return;
             }
-            $submittedImeis = $_POST['imeis'] ?? $_POST['imei'] ?? [];
-            $simNumbers = $_POST['sim_numbers'] ?? [];
-            $imeiRows = is_array($submittedImeis) ? $submittedImeis : (preg_split('/[\\s,;]+/', trim((string) $submittedImeis), -1, PREG_SPLIT_NO_EMPTY) ?: []);
-            $tokens = $imeiRows;
-            $tokens = array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $tokens), static fn ($value): bool => $value !== ''));
-            $imeis = array_values(array_unique($tokens));
-            $devices = [];
-            foreach ($imeiRows as $index => $submittedImei) {
-                $imei = trim((string) $submittedImei);
-                if ($imei !== '') {
-                    $devices[] = ['imei' => $imei, 'sim_number' => trim((string) ($simNumbers[$index] ?? ''))];
-                }
-            }
-            $deviceType = trim((string) ($_POST['device_type'] ?? ''));
-            $duplicateImeis = [];
-            foreach ($imeis as $imei) {
-                if ($this->productModel->imeiExists($imei)) {
-                    $duplicateImeis[] = $imei;
-                }
-            }
-            $hasInputDuplicates = count($imeis) !== count($tokens);
-            $invalidImeis = array_filter($imeis, static fn ($imei): bool => !preg_match('/^\\d{15}$/', $imei));
-            if (!in_array($deviceType, $deviceTypes, true) || count($imeis) === 0 || $hasInputDuplicates || $invalidImeis !== [] || $duplicateImeis !== []) {
-                $error = !in_array($deviceType, $deviceTypes, true) ? 'Choose a valid device type.'
-                    : (count($imeis) === 0 ? 'Enter at least one device IMEI.'
-                        : ($hasInputDuplicates ? 'The IMEI list contains duplicates. Each device must have a unique IMEI.'
-                            : ($invalidImeis !== [] ? 'Each IMEI must contain exactly 15 digits.'
-                                : 'One or more IMEIs are already registered: ' . implode(', ', $duplicateImeis))));
+            $category = trim((string) ($_POST['item_category'] ?? ''));
+            $types = Product::itemTypes();
+            $type = trim((string) ($_POST['item_type'] ?? ''));
+            $identifier = trim((string) ($_POST['identifier'] ?? ''));
+            $duplicateIdentifier = $identifier !== '' && $this->productModel->imeiExists($identifier);
+            if (!isset($types[$category]) || !in_array($type, $types[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || $duplicateIdentifier || (int) ($_POST['quantity'] ?? 0) < 1) {
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
                     'product' => $_POST,
                     'deviceTypes' => $deviceTypes,
-                    'error' => $error,
+                    'itemTypes' => $types,
+                    'error' => $duplicateIdentifier ? 'That serial number / IMEI is already registered.' : 'Choose a valid item and type, enter a positive quantity, and use digits only for the optional serial / IMEI.',
                 ]);
                 return;
             }
-            $this->productModel->createMany($devices, $_POST);
+            $this->productModel->create($_POST);
             $this->redirect('/index.php?controller=inventory');
         }
 
-        $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'deviceTypes' => $deviceTypes]);
+        $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'deviceTypes' => $deviceTypes, 'itemTypes' => Product::itemTypes()]);
     }
 
     public function edit(): void
@@ -86,17 +65,16 @@ class InventoryController extends Controller
                 $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => array_merge($product, $_POST), 'deviceTypes' => $deviceTypes, 'error' => 'Invalid security token']);
                 return;
             }
-            $imei = trim((string) ($_POST['imei'] ?? ''));
-            $deviceType = trim((string) ($_POST['device_type'] ?? ''));
-            if (!in_array($deviceType, $deviceTypes, true) || $imei === '' || $this->productModel->imeiExists($imei, $id)) {
+            $category = trim((string) ($_POST['item_category'] ?? ''));
+            $type = trim((string) ($_POST['item_type'] ?? ''));
+            $identifier = trim((string) ($_POST['identifier'] ?? ''));
+            if (!in_array($type, Product::itemTypes()[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($identifier !== '' && $this->productModel->imeiExists($identifier, $id))) {
                 $this->view('inventory/form', [
                     'title' => 'Edit Product',
                     'mode' => 'edit',
                     'product' => array_merge($product, $_POST),
                     'deviceTypes' => $deviceTypes,
-                    'error' => !in_array($deviceType, $deviceTypes, true)
-                        ? 'Choose a valid device type.'
-                        : ($imei === '' ? 'Enter the device IMEI.' : 'That IMEI is already registered to another product.'),
+                    'error' => 'Choose a valid item/type and enter digits only for an optional identifier. Identifiers must be unique.', 'itemTypes' => Product::itemTypes(),
                 ]);
                 return;
             }
@@ -109,7 +87,9 @@ class InventoryController extends Controller
             $this->redirect('/index.php?controller=inventory');
         }
 
-        $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => $product, 'deviceTypes' => $deviceTypes]);
+        $product['identifier'] = $product['imei'] ?? '';
+        $product['quantity'] = $product['opening_stock'] ?? 0;
+        $this->view('inventory/form', ['title' => 'Edit Product', 'mode' => 'edit', 'product' => $product, 'deviceTypes' => $deviceTypes, 'itemTypes' => Product::itemTypes()]);
     }
 
     public function delete(): void

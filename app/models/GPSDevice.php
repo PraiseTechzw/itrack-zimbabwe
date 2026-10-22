@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__) . '/core/Model.php';
+require_once __DIR__ . '/Product.php';
 
 class GPSDevice extends Model
 {
@@ -10,7 +11,7 @@ class GPSDevice extends Model
     }
     public static function packageTypes(): array
     {
-        return ['Basic installation', 'Basic FLS + camera installation', 'Basic + FLS', 'Basic installation + tracking', 'Basic installation + camera', 'FLS installation only', 'Camera installation only', 'Tracking + FLS + camera', 'Device supply only', 'Maintenance / inspection'];
+        return ['Basic', 'Basic + FLS', 'Basic + FLS + Camera'];
     }
     public function all(): array
     {
@@ -24,6 +25,23 @@ class GPSDevice extends Model
 
     public function create(array $data): string
     {
+        $trackerId = (int) ($data['tracker_product_id'] ?? 0);
+        $flsId = (int) ($data['fls_product_id'] ?? 0);
+        $cameraId = (int) ($data['camera_product_id'] ?? 0);
+        $simId = (int) ($data['sim_product_id'] ?? 0);
+        $products = new Product();
+        $this->db->beginTransaction();
+        try {
+        $tracker = $products->find($trackerId);
+        if (!$tracker || (($tracker['item_category'] ?? '') !== 'Tracker')) throw new InvalidArgumentException('Select a tracker from inventory.');
+        $data['device_type'] = (string) ($tracker['item_type'] ?? $tracker['device_type']);
+        if ($simId > 0) { $sim = $products->find($simId); $data['sim_number'] = (string) ($sim['imei'] ?? ''); }
+        foreach ([[$trackerId, 'Tracker'], [$flsId, 'FLS'], [$cameraId, 'Cameras'], [$simId, 'Sim cards']] as [$productId, $category]) {
+            if ($productId < 1) { if ($category === 'Tracker') throw new InvalidArgumentException('Select a tracker from inventory.'); continue; }
+            $product = $products->find($productId);
+            if (!$product || (($product['item_category'] ?? '') !== $category)) throw new InvalidArgumentException('Select valid installation items from inventory.');
+            $products->consume($productId);
+        }
         $sql = 'INSERT INTO gps_devices (device_name, device_type, package_type, imei, serial, sim_number, status, installed_at, created_at) VALUES (:device_name, :device_type, :package_type, :imei, :serial, :sim_number, :status, :installed_at, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':device_name' => trim((string) ($data['device_type'] ?? 'Galileosky 7x')),
@@ -35,7 +53,17 @@ class GPSDevice extends Model
             ':status' => trim((string) ($data['status'] ?? 'available')),
             ':installed_at' => !empty($data['installed_at']) ? trim((string) $data['installed_at']) : null,
         ]);
-        return $this->lastInsertId();
+        $id = $this->lastInsertId();
+        $this->execute('UPDATE gps_devices SET tracker_product_id = :tracker, fls_product_id = :fls, camera_product_id = :camera, sim_product_id = :sim, fls_serial = :fls_serial, camera_serial = :camera_serial WHERE id = :id', [':tracker' => $trackerId, ':fls' => $flsId ?: null, ':camera' => $cameraId ?: null, ':sim' => $simId ?: null, ':fls_serial' => trim((string) ($data['fls_serial'] ?? '')), ':camera_serial' => trim((string) ($data['camera_serial'] ?? '')), ':id' => $id]);
+        $this->db->commit();
+        return $id;
+        } catch (Throwable $e) { if ($this->db->inTransaction()) $this->db->rollBack(); throw $e; }
+    }
+
+    public function inventoryChoices(): array
+    {
+        $products = new Product();
+        return ['trackers' => $products->availableForInstallation('Tracker'), 'fls' => $products->availableForInstallation('FLS'), 'cameras' => $products->availableForInstallation('Cameras'), 'sims' => $products->availableForInstallation('Sim cards')];
     }
 
     public function createMany(array $devices, array $data): void

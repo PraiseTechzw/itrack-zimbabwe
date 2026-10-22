@@ -1,18 +1,18 @@
 <?php $title = 'Inventory'; ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="h4 mb-0">Inventory</h2>
-    <a class="btn btn-primary" href="/index.php?controller=inventory&action=create"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>Add Device</a>
+    <a class="btn btn-primary" href="/index.php?controller=inventory&action=create"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>Add Item</a>
 </div>
 <div class="card shadow-sm border-0">
     <div class="card-body">
-        <p class="text-secondary small mb-3">Stock register for devices held for purchase, sale, or issue. Use GPS Devices for operational tracker records and installation details.</p>
+        <p class="text-secondary small mb-3">Stock register for trackers, FLS units, cameras, and SIM cards. Installations can only use items in stock.</p>
         <div class="table-responsive">
             <table class="table table-striped align-middle">
                 <thead>
                     <tr>
-                        <th>Device Type</th>
-                        <th>IMEI</th>
-                        <th>SIM</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Serial / IMEI</th>
                         <th>Unit</th>
                         <th>Cost Price</th>
                         <th>Selling Price</th>
@@ -23,9 +23,9 @@
                 <tbody>
                 <?php foreach ($products as $product): ?>
                     <tr>
-                        <td><?= htmlspecialchars($product['device_type'] ?? '—') ?></td>
-                        <td><?= htmlspecialchars(($product['imei'] ?? '') !== '' ? $product['imei'] : 'IMEI not assigned') ?></td>
-                        <td><?= htmlspecialchars($product['sim_number'] ?? '—') ?></td>
+                        <td><?= htmlspecialchars($product['item_category'] ?? 'Tracker') ?></td>
+                        <td><?= htmlspecialchars($product['item_type'] ?? $product['device_type'] ?? '—') ?></td>
+                        <td><?= htmlspecialchars(($product['imei'] ?? '') !== '' ? $product['imei'] : '—') ?></td>
                         <td><?= htmlspecialchars($product['unit'] ?? '') ?></td>
                         <td>$<?= number_format((float) ($product['cost_price'] ?? 0), 2) ?></td>
                         <td>$<?= number_format((float) ($product['selling_price'] ?? 0), 2) ?></td>

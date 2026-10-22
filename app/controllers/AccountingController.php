@@ -129,7 +129,7 @@ class AccountingController extends Controller
                 ['label' => 'Invoice #', 'key' => 'invoice_number'],
                 ['label' => 'Currency', 'key' => 'currency'],
                 ['label' => 'Customer', 'key' => 'customer_registered_name'],
-                ['label' => 'Sale ID', 'key' => 'sale_id'],
+                ['label' => 'Installation ID', 'key' => 'installation_id'],
                 ['label' => 'Due Date', 'key' => 'due_date'],
                 ['label' => 'Status', 'key' => 'status'],
                 ['label' => 'Total', 'key' => 'total_amount', 'type' => 'money'],
@@ -146,6 +146,7 @@ class AccountingController extends Controller
             'mode' => $mode,
             'record' => $record,
             'sales' => $mode === 'create' ? $this->invoiceModel->availableSales() : [],
+            'installations' => $mode === 'create' ? $this->invoiceModel->availableInstallations() : [],
             'error' => $error,
             'recordId' => $recordId,
         ]);

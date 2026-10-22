@@ -57,6 +57,12 @@ CREATE TABLE IF NOT EXISTS gps_devices (
   imei VARCHAR(100) NOT NULL UNIQUE,
   serial VARCHAR(100),
   sim_number VARCHAR(50),
+  tracker_product_id INT NULL,
+  fls_product_id INT NULL,
+  camera_product_id INT NULL,
+  sim_product_id INT NULL,
+  fls_serial VARCHAR(100),
+  camera_serial VARCHAR(100),
   status VARCHAR(50) NOT NULL DEFAULT 'available',
   installed_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -70,6 +76,8 @@ CREATE TABLE IF NOT EXISTS products (
   imei VARCHAR(100) NULL UNIQUE,
   sim_number VARCHAR(80) NULL,
   device_type VARCHAR(80) NOT NULL DEFAULT 'Galileosky 7x',
+  item_category VARCHAR(40) NOT NULL DEFAULT 'Tracker',
+  item_type VARCHAR(100) NOT NULL DEFAULT 'Teltonika FMB920',
   unit VARCHAR(50) NOT NULL DEFAULT 'pcs',
   cost_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   selling_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
@@ -166,6 +174,7 @@ CREATE TABLE IF NOT EXISTS sales (
 CREATE TABLE IF NOT EXISTS sale_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
   sale_id INT NOT NULL,
+  installation_id INT NULL,
   product_id INT NOT NULL,
   quantity INT NOT NULL DEFAULT 0,
   unit_price DECIMAL(12,2) NOT NULL DEFAULT 0.00,
@@ -176,7 +185,8 @@ CREATE TABLE IF NOT EXISTS sale_items (
 
 CREATE TABLE IF NOT EXISTS invoices (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  sale_id INT NOT NULL,
+  sale_id INT NULL,
+  installation_id INT NULL,
   invoice_number VARCHAR(150) NOT NULL UNIQUE,
   due_date DATE NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'unpaid',
@@ -193,7 +203,8 @@ CREATE TABLE IF NOT EXISTS invoices (
   customer_tin VARCHAR(80),
   customer_vat VARCHAR(80),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
+  FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+  FOREIGN KEY (installation_id) REFERENCES gps_devices(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS invoice_items (

@@ -150,6 +150,7 @@ class Database
         )");
         self::ensureProductImei($pdo);
         self::ensureProductDeviceDetails($pdo);
+        self::ensureInventoryInstallationFields($pdo);
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS stocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -236,7 +237,8 @@ class Database
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS sale_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sale_id INTEGER NOT NULL,
+            sale_id INTEGER,
+            installation_id INTEGER,
             product_id INTEGER NOT NULL,
             quantity INTEGER NOT NULL DEFAULT 0,
             unit_price REAL NOT NULL DEFAULT 0,
@@ -247,7 +249,8 @@ class Database
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS invoices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sale_id INTEGER NOT NULL,
+            sale_id INTEGER,
+            installation_id INTEGER,
             invoice_number TEXT NOT NULL UNIQUE,
             due_date TEXT NOT NULL,
             status TEXT DEFAULT 'unpaid',
@@ -264,8 +267,10 @@ class Database
             customer_tin TEXT,
             customer_vat TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE
+            FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+            FOREIGN KEY (installation_id) REFERENCES gps_devices(id) ON DELETE SET NULL
         )");
+        self::ensureInstallationInvoiceField($pdo);
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS invoice_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -501,6 +506,26 @@ class Database
         if (!in_array('sim_number', $existingColumns, true)) {
             $pdo->exec('ALTER TABLE products ADD COLUMN sim_number TEXT');
         }
+    }
+
+    private static function ensureInventoryInstallationFields(PDO $pdo): void
+    {
+        $columns = $pdo->query('PRAGMA table_info(products)')->fetchAll();
+        $existing = array_column($columns, 'name');
+        foreach (['item_category' => "TEXT NOT NULL DEFAULT 'Tracker'", 'item_type' => "TEXT NOT NULL DEFAULT 'Teltonika FMB920'"] as $name => $definition) {
+            if (!in_array($name, $existing, true)) $pdo->exec("ALTER TABLE products ADD COLUMN {$name} {$definition}");
+        }
+        $cols = $pdo->query('PRAGMA table_info(gps_devices)')->fetchAll();
+        $gpsExisting = array_column($cols, 'name');
+        foreach (['tracker_product_id' => 'INTEGER', 'fls_product_id' => 'INTEGER', 'camera_product_id' => 'INTEGER', 'sim_product_id' => 'INTEGER', 'fls_serial' => 'TEXT', 'camera_serial' => 'TEXT'] as $name => $definition) {
+            if (!in_array($name, $gpsExisting, true)) $pdo->exec("ALTER TABLE gps_devices ADD COLUMN {$name} {$definition}");
+        }
+    }
+
+    private static function ensureInstallationInvoiceField(PDO $pdo): void
+    {
+        $columns = $pdo->query('PRAGMA table_info(invoices)')->fetchAll();
+        if (!in_array('installation_id', array_column($columns, 'name'), true)) $pdo->exec('ALTER TABLE invoices ADD COLUMN installation_id INTEGER');
     }
 
     public static function beginTransaction(): bool

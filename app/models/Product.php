@@ -4,14 +4,21 @@ require_once dirname(__DIR__) . '/core/Model.php';
 
 class Product extends Model
 {
-    public static function deviceTypes(): array
+    public static function itemTypes(): array
     {
-        return ['Galileosky 7x', 'Teltonika FMB920', 'Smart S-24xx'];
+        return ['FLS' => ['Escort', 'Dominator'], 'Cameras' => ['FT Cloud', 'IVMS'], 'Sim cards' => ['SIM card'], 'Line' => ['Econet', 'NetOne'], 'Tracker' => ['Teltonika FMB920', 'Galileosky 7x', 'Galileosky 10x', 'SmartS-24xx']];
     }
+    public static function categories(): array { return array_keys(self::itemTypes()); }
+    public static function deviceTypes(): array { return self::itemTypes()['Tracker']; }
 
     public function all(): array
     {
-        return $this->fetchAll('SELECT * FROM products ORDER BY name ASC');
+        return $this->fetchAll('SELECT * FROM products ORDER BY item_category, item_type');
+    }
+
+    public function availableForInstallation(string $category): array
+    {
+        return $this->fetchAll('SELECT * FROM products WHERE item_category = :category AND status = \'active\' AND opening_stock > 0 ORDER BY item_type', [':category' => $category]);
     }
 
     public function find(int $id): ?array
@@ -21,17 +28,24 @@ class Product extends Model
 
     public function create(array $data): string
     {
-        $sql = 'INSERT INTO products (name, sku, imei, sim_number, device_type, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :imei, :sim_number, :device_type, :category_id, :unit, :cost_price, :selling_price, 1, 0, :status, CURRENT_TIMESTAMP)';
+        $category = trim((string) ($data['item_category'] ?? 'Tracker'));
+        $type = trim((string) ($data['item_type'] ?? $data['device_type'] ?? ''));
+        $identifier = trim((string) ($data['identifier'] ?? ''));
+        $quantity = max(1, (int) ($data['quantity'] ?? 1));
+        $sku = $identifier !== '' ? $identifier : strtoupper(substr($category, 0, 3)) . '-' . strtoupper(bin2hex(random_bytes(5)));
+        $sql = 'INSERT INTO products (name, sku, imei, sim_number, device_type, item_category, item_type, category_id, unit, cost_price, selling_price, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :imei, NULL, :device_type, :item_category, :item_type, :category_id, :unit, :cost_price, :selling_price, :quantity, 0, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
-            ':name' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
-            ':sku' => trim((string) ($data['imei'] ?? '')),
-            ':imei' => trim((string) ($data['imei'] ?? '')),
-            ':sim_number' => trim((string) ($data['sim_number'] ?? '')),
-            ':device_type' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
+            ':name' => $type,
+            ':sku' => $sku,
+            ':imei' => $identifier !== '' ? $identifier : null,
+            ':device_type' => $type,
+            ':item_category' => $category,
+            ':item_type' => $type,
             ':category_id' => !empty($data['category_id']) ? (int) $data['category_id'] : null,
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),
             ':cost_price' => (float) ($data['cost_price'] ?? 0),
             ':selling_price' => (float) ($data['selling_price'] ?? 0),
+            ':quantity' => $quantity,
             ':status' => trim((string) ($data['status'] ?? 'active')),
         ]);
         return $this->lastInsertId();
@@ -57,20 +71,26 @@ class Product extends Model
 
     public function update(int $id, array $data): void
     {
-        $sql = 'UPDATE products SET name = :name, sku = CASE WHEN imei IS NOT NULL THEN :sku ELSE sku END, imei = :imei, sim_number = :sim_number, device_type = :device_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, status = :status WHERE id = :id';
+        $category = trim((string) ($data['item_category'] ?? 'Tracker'));
+        $type = trim((string) ($data['item_type'] ?? ''));
+        $identifier = trim((string) ($data['identifier'] ?? ''));
+        $sql = 'UPDATE products SET name = :name, sku = CASE WHEN :sku_check <> \'\' THEN :sku ELSE sku END, imei = :imei, sim_number = NULL, device_type = :device_type, item_category = :item_category, item_type = :item_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, opening_stock = :quantity, status = :status WHERE id = :id';
         $this->execute($sql, [
-            ':name' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
-            ':sku' => trim((string) ($data['imei'] ?? '')),
-            ':imei' => trim((string) ($data['imei'] ?? '')),
-            ':sim_number' => trim((string) ($data['sim_number'] ?? '')),
-            ':device_type' => trim((string) ($data['device_type'] ?? self::deviceTypes()[0])),
+            ':name' => $type, ':sku_check' => $identifier, ':sku' => $identifier, ':imei' => $identifier !== '' ? $identifier : null,
+            ':sim_number' => null, ':device_type' => $type, ':item_category' => $category, ':item_type' => $type,
             ':category_id' => !empty($data['category_id']) ? (int) $data['category_id'] : null,
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),
             ':cost_price' => (float) ($data['cost_price'] ?? 0),
             ':selling_price' => (float) ($data['selling_price'] ?? 0),
+            ':quantity' => max(0, (int) ($data['quantity'] ?? 0)),
             ':status' => trim((string) ($data['status'] ?? 'active')),
             ':id' => $id,
         ]);
+    }
+
+    public function consume(int $id, int $quantity = 1): void
+    {
+        if ($this->execute('UPDATE products SET opening_stock = opening_stock - :qty WHERE id = :id AND opening_stock >= :qty', [':qty' => $quantity, ':id' => $id]) < 1) throw new InvalidArgumentException('The selected inventory item is no longer in stock.');
     }
 
     public function imeiExists(string $imei, ?int $excludeId = null): bool

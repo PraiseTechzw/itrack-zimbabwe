@@ -19,7 +19,7 @@ $quickActions = [
 ];
 ?>
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3 mb-4">
-    <div><div class="eyebrow mb-2">Operations overview</div><h1 class="page-title">Good day, <?= htmlspecialchars($firstName) ?>.</h1><p class="page-subtitle">Here’s what’s happening across your Zimbabwe operations today.</p></div>
+    <div><div class="eyebrow mb-2">Operations overview</div><h1 class="page-title">Good day, <?= htmlspecialchars($firstName) ?>.</h1><p class="page-subtitle">Your inventory, installations, procurement, and sales at a glance.</p></div>
     <div class="d-flex gap-2"><a class="btn btn-light" href="/index.php?controller=reports"><i class="fa-solid fa-file-lines me-2"></i>View reports</a><a class="btn btn-primary" href="<?= $defaultModule === 'dashboard' ? '/dashboard.php' : '/index.php?controller=' . urlencode($defaultModule) ?>"><i class="fa-solid fa-arrow-up-right-from-square me-2"></i>Open <?= htmlspecialchars($defaultLabel) ?></a></div>
 </div>
 <div class="card banner mb-4"><div class="card-body p-4 p-lg-4"><div class="row align-items-center"><div class="col-lg-8"><div class="eyebrow" style="color:#bfc1ff">Command centre</div><h2 class="h4 fw-bold mt-2 mb-1">Your operation is in view.</h2><p>Monitor stock, movement, procurement, and field activity from one connected workspace.</p></div><div class="col-lg-4 text-lg-end mt-3 mt-lg-0"><span class="status status-success" style="background:rgba(255,255,255,.14);color:#fff"><span class="status-dot"></span>All systems operational</span></div></div></div></div>

@@ -50,6 +50,35 @@ class InventoryController extends Controller
         $this->view('inventory/form', ['title' => 'Create Product', 'mode' => 'create', 'deviceTypes' => $deviceTypes, 'itemTypes' => Product::itemTypes()]);
     }
 
+    public function createBulk(): void
+    {
+        $this->requireModuleAccess('inventory', ['Administrator','Procurement Officer','Store Officer','Staff']);
+        $types = Product::itemTypes();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!$this->validateCsrf()) {
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Invalid security token']);
+                return;
+            }
+            $rows = array_values(array_filter($_POST['items'] ?? [], static fn($row) => is_array($row) && (trim((string)($row['item_type'] ?? '')) !== '' || (int)($row['quantity'] ?? 0) > 0)));
+            $valid = count($rows) > 0 && count($rows) <= 50;
+            foreach ($rows as $row) {
+                $category = trim((string)($row['item_category'] ?? ''));
+                $type = trim((string)($row['item_type'] ?? ''));
+                if (!in_array($type, $types[$category] ?? [], true) || (int)($row['quantity'] ?? 0) < 1 || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0) || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0) $valid = false;
+            }
+            if (!$valid) {
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–50 valid rows. Each row needs a category, type, positive quantity, and non-negative prices.']);
+                return;
+            }
+            foreach ($rows as &$row) $row['unit'] = trim((string)($row['unit'] ?? 'pcs')) ?: 'pcs';
+            unset($row);
+            $this->productModel->createMany($rows, []);
+            $this->redirect('/index.php?controller=inventory');
+            return;
+        }
+        $this->view('inventory/bulk', ['itemTypes' => $types]);
+    }
+
     public function edit(): void
     {
         $this->requireLogin();

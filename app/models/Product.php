@@ -55,11 +55,7 @@ class Product extends Model
     {
         $this->db->beginTransaction();
         try {
-            foreach ($devices as $device) {
-                $data['imei'] = $device['imei'];
-                $data['sim_number'] = $device['sim_number'];
-                $this->create($data);
-            }
+            foreach ($devices as $device) $this->create(array_merge($data, $device));
             $this->db->commit();
         } catch (Throwable $exception) {
             if ($this->db->inTransaction()) {

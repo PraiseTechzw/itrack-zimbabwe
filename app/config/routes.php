@@ -2,7 +2,7 @@
 return [
     'dashboard' => ['controller' => 'DashboardController', 'action' => 'index'],
     'auth' => ['controller' => 'AuthController', 'actions' => ['login', 'logout', 'forgotPassword', 'changePassword']],
-    'inventory' => ['controller' => 'InventoryController', 'actions' => ['index', 'create', 'edit', 'delete', 'apiList']],
+    'inventory' => ['controller' => 'InventoryController', 'actions' => ['index', 'create', 'createBulk', 'edit', 'delete', 'apiList']],
     'clients' => ['controller' => 'ClientController', 'actions' => ['index', 'create', 'edit', 'delete']],
     'supplier' => ['controller' => 'SupplierController', 'actions' => ['index', 'create', 'edit', 'delete']],
     'users' => ['controller' => 'UsersController', 'actions' => ['index', 'create', 'edit', 'delete']],

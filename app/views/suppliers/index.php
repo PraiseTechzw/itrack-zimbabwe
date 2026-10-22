@@ -1,38 +1,25 @@
-<?php $title = 'Suppliers'; ?>
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="h4 mb-0">Suppliers</h2>
-    <a class="btn btn-primary" href="/index.php?controller=supplier&action=create">New Supplier</a>
-</div>
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Company</th>
-                        <th>Contact</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($suppliers as $supplier): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($supplier['company_name'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($supplier['contact_name'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($supplier['email'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($supplier['phone'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($supplier['status'] ?? '') ?></td>
-                            <td>
-                                <a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=supplier&action=edit&id=<?= (int) ($supplier['id'] ?? 0) ?>">Edit</a>
-                                <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=supplier&action=delete&id=<?= (int) ($supplier['id'] ?? 0) ?>" data-confirm="Delete this supplier?">Delete</a>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+<?php
+$title = 'Suppliers';
+$suppliers = $suppliers ?? [];
+$activeSuppliers = count(array_filter($suppliers, static fn($supplier) => strtolower((string)($supplier['status'] ?? 'active')) === 'active'));
+$withContact = count(array_filter($suppliers, static fn($supplier) => trim((string)($supplier['email'] ?? '')) !== '' || trim((string)($supplier['phone'] ?? '')) !== ''));
+$esc = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+?>
+<style>
+.supplier-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:25px 28px;margin-bottom:19px;border-radius:18px;background:linear-gradient(115deg,#17243d,#334d7a);color:#fff}.supplier-hero h1{margin:0 0 6px;font-size:25px;font-weight:800}.supplier-hero p{margin:0;color:#c3cee0;font-size:13px}.supplier-hero .btn{white-space:nowrap}.supplier-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:19px}.supplier-stat{padding:16px 19px;border:1px solid #e6eaf0;border-radius:14px;background:#fff}.supplier-stat span{display:block;color:#78869a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.supplier-stat strong{display:block;margin-top:7px;color:#203653;font-size:23px}.supplier-tools{display:flex;align-items:center;gap:10px;margin-bottom:15px}.supplier-tools input{max-width:360px}.supplier-table{min-width:760px}.supplier-table thead th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#78869a;background:#f7f9fc;white-space:nowrap}.supplier-table tbody td{font-size:12px;color:#506079}.supplier-company{font-weight:750;color:#263b59!important}.supplier-contact{display:grid;gap:4px}.supplier-contact a{color:#566bd0;text-decoration:none}.supplier-contact a:hover{text-decoration:underline}.supplier-status{display:inline-flex;padding:5px 9px;border-radius:999px;background:#eaf7ef;color:#198754;font-size:10px;font-weight:750}.supplier-status.inactive{background:#f0f2f5;color:#778398}.supplier-empty{text-align:center;padding:48px 20px;color:#8391a5}.supplier-empty i{display:block;font-size:27px;margin-bottom:10px;color:#aab5c4}@media(max-width:650px){.supplier-hero{align-items:flex-start;flex-direction:column;padding:21px}.supplier-stats{grid-template-columns:1fr}.supplier-tools{align-items:stretch;flex-direction:column}.supplier-tools input{max-width:none}}
+</style>
+<section class="supplier-hero"><div><h1>Suppliers</h1><p>Keep supplier contacts and purchasing partners organized in one place.</p></div><a class="btn btn-primary" href="/index.php?controller=supplier&action=create"><i class="fa-solid fa-plus me-2"></i>New supplier</a></section>
+<div class="supplier-stats"><div class="supplier-stat"><span>Total suppliers</span><strong><?= count($suppliers) ?></strong></div><div class="supplier-stat"><span>Active suppliers</span><strong><?= $activeSuppliers ?></strong></div><div class="supplier-stat"><span>Contact details saved</span><strong><?= $withContact ?></strong></div></div>
+<div class="card shadow-sm border-0"><div class="card-body p-3 p-lg-4">
+    <div class="supplier-tools"><input class="form-control" id="supplier-search" type="search" placeholder="Search company, contact, email, or phone"><span class="ms-auto small text-secondary" id="supplier-count"><?= count($suppliers) ?> suppliers</span></div>
+    <div class="table-responsive"><table class="table supplier-table align-middle mb-0"><thead><tr><th>Company</th><th>Contact person</th><th>Contact details</th><th>Status</th><th class="text-end">Actions</th></tr></thead><tbody id="supplier-rows">
+    <?php foreach ($suppliers as $supplier): $status = strtolower((string)($supplier['status'] ?? 'active')); $email = trim((string)($supplier['email'] ?? '')); $phone = trim((string)($supplier['phone'] ?? '')); $company = (string)($supplier['company_name'] ?? ''); $contact = (string)($supplier['contact_name'] ?? ''); ?>
+        <tr data-search="<?= $esc(strtolower($company.' '.$contact.' '.$email.' '.$phone)) ?>"><td class="supplier-company"><?= $esc($company) ?></td><td><?= $esc($contact ?: '—') ?></td><td><div class="supplier-contact"><?php if ($email !== ''): ?><a href="mailto:<?= $esc($email) ?>"><i class="fa-regular fa-envelope me-1"></i><?= $esc($email) ?></a><?php endif; ?><?php if ($phone !== ''): ?><a href="tel:<?= $esc(preg_replace('/[^+0-9]/', '', $phone)) ?>"><i class="fa-solid fa-phone me-1"></i><?= $esc($phone) ?></a><?php endif; ?><?php if ($email === '' && $phone === ''): ?>—<?php endif; ?></div></td><td><span class="supplier-status <?= $status === 'active' ? '' : 'inactive' ?>"><?= $esc(ucfirst($status)) ?></span></td><td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=supplier&action=edit&id=<?= (int)($supplier['id'] ?? 0) ?>">Edit</a> <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=supplier&action=delete&id=<?= (int)($supplier['id'] ?? 0) ?>" data-confirm="Delete this supplier?">Delete</a></td></tr>
+    <?php endforeach; ?>
+    </tbody></table>
+    <?php if (!$suppliers): ?><div class="supplier-empty"><i class="fa-solid fa-truck-field"></i><strong>No suppliers added yet</strong><div>Add a supplier to keep purchasing contact details ready.</div><a class="btn btn-primary btn-sm mt-3" href="/index.php?controller=supplier&action=create">Add supplier</a></div><?php endif; ?>
+    <div class="supplier-empty d-none" id="supplier-no-results">No suppliers match your search.</div></div>
+</div></div>
+<script>
+const supplierSearch=document.getElementById('supplier-search'),supplierRows=[...document.querySelectorAll('#supplier-rows tr')];supplierSearch.addEventListener('input',()=>{const q=supplierSearch.value.trim().toLowerCase();let shown=0;supplierRows.forEach(row=>{const match=!q||row.dataset.search.includes(q);row.classList.toggle('d-none',!match);if(match)shown++;});document.getElementById('supplier-count').textContent=shown+' supplier'+(shown===1?'':'s');document.getElementById('supplier-no-results').classList.toggle('d-none',shown>0||supplierRows.length===0);});
+</script>

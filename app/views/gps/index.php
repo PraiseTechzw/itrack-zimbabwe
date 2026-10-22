@@ -1,43 +1,26 @@
-<?php $title = 'Installations'; ?>
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div><h2 class="h4 mb-1">Installations</h2><p class="text-secondary small mb-0">Record installations using equipment available in inventory.</p></div>
-    <div class="d-flex gap-2"><a class="btn btn-outline-primary" href="/index.php?controller=gps&action=createBulk"><i class="fa-solid fa-layer-group me-2"></i>Bulk install</a><a class="btn btn-primary" href="/index.php?controller=gps&action=create">New Installation</a></div>
-</div>
-<div class="card shadow-sm border-0">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-striped align-middle">
-                <thead>
-                    <tr>
-                        <th>Device Name</th>
-                        <th>Device Type</th>
-                        <th>Package</th>
-                        <th>IMEI</th>
-                        <th>SIM</th>
-                        <th>Installed At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($devices as $device): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($device['device_name'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($device['device_type'] ?? '—') ?></td>
-                            <td><?= htmlspecialchars($device['package_type'] ?? '—') ?></td>
-                            <td><?= htmlspecialchars($device['imei'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($device['sim_number'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($device['installed_at'] ?? '—') ?></td>
-                            <td>
-                                <form method="post" action="/index.php?controller=gps&action=delete" class="d-inline" data-confirm="Delete this device?">
-                                    <?= $this->csrfField() ?>
-                                    <input type="hidden" name="id" value="<?= (int) ($device['id'] ?? 0) ?>">
-                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+<?php
+$title = 'Installations';
+$devices = $devices ?? [];
+$withSim = count(array_filter($devices, static fn($device) => trim((string)($device['sim_number'] ?? '')) !== ''));
+$withFittings = count(array_filter($devices, static fn($device) => in_array($device['package_type'] ?? '', ['Basic + FLS', 'Basic + FLS + Camera'], true)));
+$packages = array_values(array_unique(array_map(static fn($device) => (string)($device['package_type'] ?? 'Basic'), $devices)));
+$esc = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+?>
+<style>
+.install-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:25px 28px;margin-bottom:19px;border-radius:18px;background:linear-gradient(115deg,#17243d,#334d7a);color:#fff}.install-hero h1{margin:0 0 6px;font-size:25px;font-weight:800}.install-hero p{margin:0;color:#c3cee0;font-size:13px}.install-hero-actions{display:flex;gap:9px;white-space:nowrap}.install-hero-actions .btn-light{color:#24395b}.install-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:19px}.install-stat{padding:16px 19px;border:1px solid #e6eaf0;border-radius:14px;background:#fff}.install-stat span{display:block;color:#78869a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.install-stat strong{display:block;margin-top:7px;color:#203653;font-size:23px}.install-tools{display:flex;align-items:center;gap:10px;margin-bottom:15px}.install-tools input{max-width:360px}.install-table{min-width:860px}.install-table thead th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#78869a;background:#f7f9fc;white-space:nowrap}.install-table tbody td{font-size:12px;color:#506079}.install-device{display:grid;gap:4px}.install-device strong{color:#263b59;font-size:12px}.install-device small{color:#8491a4}.install-package{display:inline-flex;padding:5px 9px;border-radius:999px;background:#edf1ff;color:#4c5ac4;font-size:10px;font-weight:750;white-space:nowrap}.install-date{white-space:nowrap}.install-empty{text-align:center;padding:48px 20px;color:#8391a5}.install-empty i{display:block;font-size:27px;margin-bottom:10px;color:#aab5c4}@media(max-width:700px){.install-hero{align-items:flex-start;flex-direction:column;padding:21px}.install-hero-actions{width:100%;flex-wrap:wrap}.install-stats{grid-template-columns:1fr}.install-tools{align-items:stretch;flex-direction:column}.install-tools input{max-width:none}}
+</style>
+<section class="install-hero"><div><h1>Installations</h1><p>Track installed devices, selected packages, and assigned equipment.</p></div><div class="install-hero-actions"><a class="btn btn-light" href="/index.php?controller=gps&action=createBulk"><i class="fa-solid fa-layer-group me-2"></i>Bulk install</a><a class="btn btn-primary" href="/index.php?controller=gps&action=create"><i class="fa-solid fa-plus me-2"></i>New installation</a></div></section>
+<div class="install-stats"><div class="install-stat"><span>Total installations</span><strong><?= count($devices) ?></strong></div><div class="install-stat"><span>With SIM assigned</span><strong><?= $withSim ?></strong></div><div class="install-stat"><span>FLS packages</span><strong><?= $withFittings ?></strong></div></div>
+<div class="card shadow-sm border-0"><div class="card-body p-3 p-lg-4">
+    <div class="install-tools"><input class="form-control" id="installation-search" type="search" placeholder="Search device, IMEI, SIM, or package"><select class="form-select" id="installation-package" style="max-width:240px"><option value="">All packages</option><?php foreach ($packages as $package): ?><option value="<?= $esc($package) ?>"><?= $esc($package) ?></option><?php endforeach; ?></select><span class="ms-auto small text-secondary" id="installation-count"><?= count($devices) ?> installations</span></div>
+    <div class="table-responsive"><table class="table install-table align-middle mb-0"><thead><tr><th>Device</th><th>Package</th><th>Tracker IMEI</th><th>SIM number</th><th>Installed date</th><th class="text-end">Actions</th></tr></thead><tbody id="installation-rows">
+    <?php foreach ($devices as $device): $name = (string)($device['device_name'] ?? ''); $type = (string)($device['device_type'] ?? '—'); $package = (string)($device['package_type'] ?? 'Basic'); $imei = (string)($device['imei'] ?? ''); $sim = (string)($device['sim_number'] ?? ''); $installed = trim((string)($device['installed_at'] ?? '')); $timestamp = $installed !== '' ? strtotime($installed) : false; $dateLabel = $timestamp !== false ? date('M j, Y', $timestamp) : 'Not set'; ?>
+        <tr data-package="<?= $esc($package) ?>" data-search="<?= $esc(strtolower($name.' '.$type.' '.$package.' '.$imei.' '.$sim)) ?>"><td><div class="install-device"><strong><?= $esc($name ?: $type) ?></strong><small><?= $esc($type) ?></small></div></td><td><span class="install-package"><?= $esc($package) ?></span></td><td class="fw-semibold"><?= $esc($imei ?: '—') ?></td><td><?= $esc($sim ?: '—') ?></td><td class="install-date"><?= $esc($dateLabel) ?></td><td class="text-end"><form method="post" action="/index.php?controller=gps&action=delete" class="d-inline" data-confirm="Delete this installation?"><?= $this->csrfField() ?><input type="hidden" name="id" value="<?= (int)($device['id'] ?? 0) ?>"><button class="btn btn-sm btn-outline-danger" type="submit"><i class="fa-regular fa-trash-can me-1"></i>Delete</button></form></td></tr>
+    <?php endforeach; ?>
+    </tbody></table>
+    <?php if (!$devices): ?><div class="install-empty"><i class="fa-solid fa-satellite-dish"></i><strong>No installations recorded yet</strong><div>Create one installation or add a batch when you are ready.</div><a class="btn btn-primary btn-sm mt-3" href="/index.php?controller=gps&action=create">Create installation</a></div><?php endif; ?>
+    <div class="install-empty d-none" id="installation-no-results">No installations match your search.</div></div>
+</div></div>
+<script>
+const installationSearch=document.getElementById('installation-search'),installationPackage=document.getElementById('installation-package'),installationRows=[...document.querySelectorAll('#installation-rows tr')];function filterInstallations(){const q=installationSearch.value.trim().toLowerCase(),pkg=installationPackage.value;let shown=0;installationRows.forEach(row=>{const match=(!q||row.dataset.search.includes(q))&&(!pkg||row.dataset.package===pkg);row.classList.toggle('d-none',!match);if(match)shown++;});document.getElementById('installation-count').textContent=shown+' installation'+(shown===1?'':'s');document.getElementById('installation-no-results').classList.toggle('d-none',shown>0||installationRows.length===0);}installationSearch.addEventListener('input',filterInstallations);installationPackage.addEventListener('change',filterInstallations);
+</script>

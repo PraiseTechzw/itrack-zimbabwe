@@ -16,9 +16,10 @@ class Product extends Model
         return $this->fetchAll('SELECT * FROM products ORDER BY item_category, item_type');
     }
 
-    public function availableForInstallation(string $category, int $includeId = 0): array
+    public function availableForInstallation(string $category, int $includeId = 0, bool $requireIdentifier = false): array
     {
-        return $this->fetchAll('SELECT * FROM products WHERE item_category = :category AND (status = \'active\' AND opening_stock > 0 OR id = :include_id) ORDER BY item_type', [':category' => $category, ':include_id' => $includeId]);
+        $identifierClause = $requireIdentifier ? " AND imei IS NOT NULL AND TRIM(imei) <> ''" : '';
+        return $this->fetchAll('SELECT * FROM products WHERE item_category = :category AND ((status = \'active\' AND opening_stock > 0' . $identifierClause . ') OR id = :include_id) ORDER BY item_type', [':category' => $category, ':include_id' => $includeId]);
     }
 
     public function find(int $id): ?array

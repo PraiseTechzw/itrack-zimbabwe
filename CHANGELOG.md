@@ -4,6 +4,14 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] – 2026-11-02
+
+### Added
+
+- Added the complete [MIT License](LICENSE) text with the `PraiseTechzw` copyright notice.
+- Declared `MIT` explicitly in `composer.json` for package and tooling metadata.
+- Updated the README license badge and license section.
+
 ## [1.0.0] – 2026-11-02
 
 This is the first formal release of iTrack Zimbabwe: a PHP 8.1+ ERP-style operations platform for inventory, tracker installations, procurement, sales, accounting, requisitions, reporting, notifications, and user administration.
@@ -55,4 +63,5 @@ This is the first formal release of iTrack Zimbabwe: a PHP 8.1+ ERP-style operat
 - README and screenshot-index links were checked for missing local targets.
 - The release was committed and pushed to the `main` branch.
 
+[1.0.1]: https://github.com/PraiseTechzw/itrack-zimbabwe/releases/tag/v1.0.1
 [1.0.0]: https://github.com/PraiseTechzw/itrack-zimbabwe/releases/tag/v1.0.0

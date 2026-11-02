@@ -3,7 +3,7 @@
 [![PHP 8.1+](https://img.shields.io/badge/PHP-8.1%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://www.php.net/)
 [![SQLite / MySQL](https://img.shields.io/badge/Database-SQLite%20%7C%20MySQL-4F46E5?style=for-the-badge&logo=sqlite&logoColor=white)](docs/INSTALLATION.md)
 [![Documentation](https://img.shields.io/badge/Docs-current-14B8A6?style=for-the-badge&logo=readthedocs&logoColor=white)](docs/README.md)
-[![License](https://img.shields.io/badge/License-see%20LICENSE-64748B?style=for-the-badge)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-64748B?style=for-the-badge)](LICENSE)
 
 **iTrack Zimbabwe** is a lightweight PHP 8.1+ ERP-style operations platform for managing inventory, tracker installations, procurement, sales, accounting, requisitions, reporting, notifications, and users.
 
@@ -362,4 +362,4 @@ Read the [installation guide](docs/INSTALLATION.md), [deployment guide](docs/DEP
 
 ## License
 
-See [`LICENSE`](LICENSE) for the project license.
+iTrack Zimbabwe is released under the [MIT License](LICENSE). Copyright © 2026 PraiseTechzw. The license permits commercial and private use, modification, distribution, and sublicensing, subject to preserving the copyright and permission notice.

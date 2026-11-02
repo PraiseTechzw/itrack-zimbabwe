@@ -87,7 +87,7 @@ class Product extends Model
 
     public function consume(int $id, int $quantity = 1): void
     {
-        if ($this->execute('UPDATE products SET opening_stock = opening_stock - :qty WHERE id = :id AND opening_stock >= :qty', [':qty' => $quantity, ':id' => $id]) < 1) throw new InvalidArgumentException('The selected inventory item is no longer in stock.');
+        if ($this->execute('UPDATE products SET opening_stock = opening_stock - :quantity_to_consume WHERE id = :id AND opening_stock >= :minimum_quantity', [':quantity_to_consume' => $quantity, ':minimum_quantity' => $quantity, ':id' => $id]) < 1) throw new InvalidArgumentException('The selected inventory item is no longer in stock.');
     }
 
     public function restore(int $id, int $quantity = 1): void

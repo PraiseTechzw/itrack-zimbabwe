@@ -31,17 +31,18 @@ class InventoryController extends Controller
             $types = Product::itemTypes();
             $type = trim((string) ($_POST['item_type'] ?? ''));
             $identifier = trim((string) ($_POST['identifier'] ?? ''));
-            $needsIdentifier = in_array($category, ['Tracker', 'FLS', 'Cameras'], true);
+            $needsIdentifier = in_array($category, ['FLS', 'Cameras'], true);
             $duplicateIdentifier = $identifier !== '' && $this->productModel->imeiExists($identifier);
-            $invalidTrackedQuantity = $needsIdentifier && (int)($_POST['quantity'] ?? 0) > 1;
-            if (!isset($types[$category]) || !in_array($type, $types[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $duplicateIdentifier || $invalidTrackedQuantity || (int) ($_POST['quantity'] ?? 0) < 1) {
+            $quantity = (int)($_POST['quantity'] ?? 0);
+            $invalidTrackedQuantity = ($needsIdentifier && $quantity !== 1) || ($identifier !== '' && $quantity !== 1);
+            if (!isset($types[$category]) || !in_array($type, $types[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $duplicateIdentifier || $invalidTrackedQuantity || $quantity < 1) {
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
                     'product' => $_POST,
                     'deviceTypes' => $deviceTypes,
                     'itemTypes' => $types,
-                    'error' => $duplicateIdentifier ? 'That serial number / IMEI is already registered.' : ($invalidTrackedQuantity ? 'Serialized trackers, FLS units, and cameras must be added one unit per inventory row.' : ($needsIdentifier && $identifier === '' ? 'Enter the IMEI or serial number for this inventory item.' : 'Choose a valid item and type, enter a positive quantity, and use digits only for the serial / IMEI.')),
+                    'error' => $duplicateIdentifier ? 'That serial number / IMEI is already registered.' : ($invalidTrackedQuantity ? 'Serialized inventory items must have quantity 1. Trackers without an inventory IMEI can be added in bulk.' : ($needsIdentifier && $identifier === '' ? 'Enter the IMEI or serial number for this inventory item.' : 'Choose a valid item and type, enter a positive quantity, and use digits only for the serial / IMEI.')),
                 ]);
                 return;
             }
@@ -68,12 +69,13 @@ class InventoryController extends Controller
                 $category = trim((string)($row['item_category'] ?? ''));
                 $type = trim((string)($row['item_type'] ?? ''));
                 $identifier = trim((string)($row['identifier'] ?? ''));
-                $needsIdentifier = in_array($category, ['Tracker', 'FLS', 'Cameras'], true);
-                if (!in_array($type, $types[$category] ?? [], true) || (int)($row['quantity'] ?? 0) < 1 || ($needsIdentifier && ((int)($row['quantity'] ?? 0) !== 1 || $identifier === '')) || !preg_match('/^\\d*$/', $identifier) || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier))) || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0) || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0) $valid = false;
+                $needsIdentifier = in_array($category, ['FLS', 'Cameras'], true);
+                $quantity = (int)($row['quantity'] ?? 0);
+                if (!in_array($type, $types[$category] ?? [], true) || $quantity < 1 || ($needsIdentifier && ($quantity !== 1 || $identifier === '')) || ($identifier !== '' && $quantity !== 1) || !preg_match('/^\\d*$/', $identifier) || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier))) || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0) || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0) $valid = false;
                 if ($identifier !== '') $identifiers[$identifier] = true;
             }
             if (!$valid) {
-                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–50 valid rows. Trackers, FLS units, and cameras need a unique numeric serial / IMEI and quantity 1.']);
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–50 valid rows. FLS and cameras require a unique numeric serial and quantity 1. Trackers may be entered as bulk stock without an IMEI, or as one serialized unit per row.']);
                 return;
             }
             foreach ($rows as &$row) $row['unit'] = trim((string)($row['unit'] ?? 'pcs')) ?: 'pcs';
@@ -103,8 +105,9 @@ class InventoryController extends Controller
             $category = trim((string) ($_POST['item_category'] ?? ''));
             $type = trim((string) ($_POST['item_type'] ?? ''));
             $identifier = trim((string) ($_POST['identifier'] ?? ''));
-            $needsIdentifier = in_array($category, ['Tracker', 'FLS', 'Cameras'], true);
-            $invalidTrackedQuantity = $needsIdentifier && (int)($_POST['quantity'] ?? 0) > 1;
+            $needsIdentifier = in_array($category, ['FLS', 'Cameras'], true);
+            $quantity = (int)($_POST['quantity'] ?? 0);
+            $invalidTrackedQuantity = ($needsIdentifier && $quantity > 1) || ($identifier !== '' && $quantity > 1);
             if (!in_array($type, Product::itemTypes()[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $invalidTrackedQuantity || ($identifier !== '' && $this->productModel->imeiExists($identifier, $id))) {
                 $this->view('inventory/form', [
                     'title' => 'Edit Product',

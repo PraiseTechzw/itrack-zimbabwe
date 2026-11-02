@@ -43,9 +43,9 @@ class GPSController extends Controller
             $invalidFields = !in_array($_POST['package_type'] ?? '', $packageTypes, true);
             $needsFls = in_array($_POST['package_type'] ?? '', ['Basic + FLS', 'Basic + FLS + Camera'], true);
             $needsCamera = ($_POST['package_type'] ?? '') === 'Basic + FLS + Camera';
-            $trackerImei = $this->gpsModel->trackerImeiFromInventory((int)($_POST['tracker_product_id'] ?? 0));
+            $trackerImei = $this->gpsModel->trackerIdentifierFromInventory((int)($_POST['tracker_product_id'] ?? 0), (string)($_POST['tracker_identifier'] ?? ''));
             if ($invalidFields || $trackerImei === null || ($needsFls && empty($_POST['fls_product_id'])) || ($needsCamera && empty($_POST['camera_product_id']))) {
-                $error = 'Choose serialized equipment from inventory. Tracker IMEI / serial and required FLS / camera serials must already be recorded on the inventory items.';
+                $error = 'Choose an in-stock tracker and enter its numeric IMEI / serial. Required FLS and camera serials must already be recorded on their inventory items.';
                 $this->view('gps/form', [
                     'title' => 'Create Installation', 'mode' => 'create', 'error' => $error,
                     'device' => $_POST, 'packageTypes' => $packageTypes, 'inventory' => $this->gpsModel->inventoryChoices(),
@@ -84,14 +84,14 @@ class GPSController extends Controller
             $imeis = [];
             $valid = count($rows) > 0 && count($rows) <= 50;
             foreach ($rows as $row) {
-                $imei = $this->gpsModel->trackerImeiFromInventory((int)($row['tracker_product_id'] ?? 0));
+                $imei = $this->gpsModel->trackerIdentifierFromInventory((int)($row['tracker_product_id'] ?? 0), (string)($row['tracker_identifier'] ?? ''));
                 $package = (string)($row['package_type'] ?? '');
                 $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
                 $needsCamera = $package === 'Basic + FLS + Camera';
                 if (!in_array($package, $packages, true) || $imei === null || ($needsFls && (int)($row['fls_product_id'] ?? 0) < 1) || (!$needsFls && (int)($row['fls_product_id'] ?? 0) > 0) || ($needsCamera && (int)($row['camera_product_id'] ?? 0) < 1) || (!$needsCamera && (int)($row['camera_product_id'] ?? 0) > 0) || ($imei !== null && (isset($imeis[$imei]) || $this->gpsModel->imeiExists($imei)))) $valid = false;
                 if ($imei !== null) $imeis[$imei] = true;
             }
-            if (!$valid) { $view('Add 1–50 rows with serialized tracker, FLS, and camera inventory selections required by each package. Each tracker IMEI must be unique.'); return; }
+            if (!$valid) { $view('Add 1–50 rows with an in-stock tracker and a unique numeric IMEI / serial for each. Select the FLS or camera inventory items required by each package.'); return; }
             foreach ($rows as &$row) $row['installed_at'] = trim((string)($row['installed_at'] ?? '')) ?: null;
             unset($row);
             try { $this->gpsModel->createMany($rows, []); }
@@ -118,11 +118,11 @@ class GPSController extends Controller
             $package = (string)($_POST['package_type'] ?? '');
             $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
             $needsCamera = $package === 'Basic + FLS + Camera';
-            $trackerImei = $this->gpsModel->trackerImeiFromInventory((int)($_POST['tracker_product_id'] ?? 0));
+            $trackerImei = $this->gpsModel->trackerIdentifierFromInventory((int)($_POST['tracker_product_id'] ?? 0), (string)($_POST['tracker_identifier'] ?? ''));
             $invalid = !in_array($package, GPSDevice::packageTypes(), true) || $trackerImei === null || ($needsFls && (int)($_POST['fls_product_id'] ?? 0) < 1) || (!$needsFls && (int)($_POST['fls_product_id'] ?? 0) > 0) || ($needsCamera && (int)($_POST['camera_product_id'] ?? 0) < 1) || (!$needsCamera && (int)($_POST['camera_product_id'] ?? 0) > 0);
             $merged = array_merge($device, $_POST);
             if ($invalid) {
-                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'Choose serialized equipment from inventory. Basic installations do not include FLS or camera; equipment serials come from inventory records.']);
+                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'Choose an in-stock tracker and enter its numeric IMEI / serial. Basic installations do not include FLS or camera.']);
                 return;
             }
             if ($trackerImei !== null && $this->gpsModel->imeiExists($trackerImei, $id)) {

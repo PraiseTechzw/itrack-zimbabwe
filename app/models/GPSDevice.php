@@ -36,7 +36,7 @@ class GPSDevice extends Model
         self::validatePackageSelection($data, $trackerId, $flsId, $cameraId);
         $tracker = $products->find($trackerId);
         if (!$tracker || (($tracker['item_category'] ?? '') !== 'Tracker')) throw new InvalidArgumentException('Select a tracker from inventory.');
-        $trackerIdentifier = self::inventoryIdentifier($tracker, 'Tracker IMEI / serial');
+        $trackerIdentifier = self::resolveTrackerIdentifier($tracker, (string)($data['tracker_identifier'] ?? ''));
         $data['device_type'] = (string) ($tracker['item_type'] ?? $tracker['device_type']);
         if ($simId > 0) { $sim = $products->find($simId); $data['sim_number'] = (string) ($sim['imei'] ?? ''); }
         $fls = null;
@@ -75,7 +75,7 @@ class GPSDevice extends Model
     {
         $products = new Product();
         return [
-            'trackers' => $products->availableForInstallation('Tracker', (int)($device['tracker_product_id'] ?? 0), true),
+            'trackers' => $products->availableForInstallation('Tracker', (int)($device['tracker_product_id'] ?? 0)),
             'fls' => $products->availableForInstallation('FLS', (int)($device['fls_product_id'] ?? 0), true),
             'cameras' => $products->availableForInstallation('Cameras', (int)($device['camera_product_id'] ?? 0), true),
             'sims' => $products->availableForInstallation('Sim cards', (int)($device['sim_product_id'] ?? 0)),
@@ -122,7 +122,7 @@ class GPSDevice extends Model
             foreach (['tracker_product_id', 'fls_product_id', 'camera_product_id', 'sim_product_id'] as $key) $products->restore((int)($current[$key] ?? 0));
             $tracker = $products->find($trackerId);
             if (!$tracker || ($tracker['item_category'] ?? '') !== 'Tracker') throw new InvalidArgumentException('Select a tracker from inventory.');
-            $trackerIdentifier = self::inventoryIdentifier($tracker, 'Tracker IMEI / serial');
+            $trackerIdentifier = self::resolveTrackerIdentifier($tracker, (string)($data['tracker_identifier'] ?? ''));
             $fls = null;
             $camera = null;
             foreach ([[$trackerId, 'Tracker'], [$flsId, 'FLS'], [$cameraId, 'Cameras'], [$simId, 'Sim cards']] as [$productId, $category]) {
@@ -178,12 +178,22 @@ class GPSDevice extends Model
         }
     }
 
-    public function trackerImeiFromInventory(int $productId): ?string
+    public function trackerIdentifierFromInventory(int $productId, string $identifier = ''): ?string
     {
         $product = (new Product())->find($productId);
         if (!$product || ($product['item_category'] ?? '') !== 'Tracker') return null;
-        try { return self::inventoryIdentifier($product, 'Tracker IMEI / serial'); }
+        try { return self::resolveTrackerIdentifier($product, $identifier); }
         catch (InvalidArgumentException) { return null; }
+    }
+
+    private static function resolveTrackerIdentifier(array $product, string $providedIdentifier): string
+    {
+        $inventoryIdentifier = trim((string)($product['imei'] ?? ''));
+        $identifier = $inventoryIdentifier !== '' ? $inventoryIdentifier : trim($providedIdentifier);
+        if ($identifier === '' || !preg_match('/^\d+$/', $identifier)) {
+            throw new InvalidArgumentException('Enter a numeric tracker IMEI / serial for this installation.');
+        }
+        return $identifier;
     }
 
     private static function inventoryIdentifier(array $product, string $label): string

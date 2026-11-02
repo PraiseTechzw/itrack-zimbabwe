@@ -74,7 +74,7 @@ class Product extends Model
         $sql = 'UPDATE products SET name = :name, sku = CASE WHEN :sku_check <> \'\' THEN :sku ELSE sku END, imei = :imei, sim_number = NULL, device_type = :device_type, item_category = :item_category, item_type = :item_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, opening_stock = :quantity, status = :status WHERE id = :id';
         $this->execute($sql, [
             ':name' => $type, ':sku_check' => $identifier, ':sku' => $identifier, ':imei' => $identifier !== '' ? $identifier : null,
-            ':sim_number' => null, ':device_type' => $type, ':item_category' => $category, ':item_type' => $type,
+            ':device_type' => $type, ':item_category' => $category, ':item_type' => $type,
             ':category_id' => !empty($data['category_id']) ? (int) $data['category_id'] : null,
             ':unit' => trim((string) ($data['unit'] ?? 'pcs')),
             ':cost_price' => (float) ($data['cost_price'] ?? 0),

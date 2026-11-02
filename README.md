@@ -346,6 +346,10 @@ The project currently relies primarily on PHP syntax checks, module smoke tests,
 
 Before opening a pull request, verify login, role-based navigation, CRUD actions, bulk inventory, installations, accounting workflows, report previews/exports, API responses, and password recovery in the target environment.
 
+## Contributing
+
+Please read the [contribution guide](.github/CONTRIBUTING.md), [code of conduct](.github/CODE_OF_CONDUCT.md), and [security guide](docs/SECURITY.md) before opening an issue or pull request. UI changes should include sanitized screenshots, database changes should include migrations and rollback notes, and security issues should be reported privately rather than through public issues.
+
 ## Deployment and security
 
 For production deployments:

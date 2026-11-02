@@ -52,6 +52,8 @@ Run the lightweight notification helper check against a configured database:
 php tests/notification_service_test.php
 ```
 
+GitHub Actions runs the PHP syntax check on pushes to `main` and on pull requests. The workflow is defined in [`.github/workflows/php.yml`](../.github/workflows/php.yml) and currently validates the project with PHP 8.2.
+
 Manual smoke checks should cover authentication, role-aware navigation, CRUD actions, bulk inventory, installations, accounting, report previews/exports, APIs, and password recovery. Capture updated screens with a clean browser viewport and update [`docs/screenshots/README.md`](screenshots/README.md).
 
 ## Coding and security conventions

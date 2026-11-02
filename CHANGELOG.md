@@ -4,6 +4,17 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Expanded contribution guidance with local setup, branch naming, MVC conventions, migration expectations, verification commands, security requirements, and MIT licensing notes.
+- Reworked the pull-request template with code, UI, API, database, deployment, documentation, screenshot, and security checklists.
+- Replaced invalid issue-form markup with valid Markdown issue templates for bug reports and feature requests.
+- Added GitHub issue configuration for private security-vulnerability reporting.
+- Expanded the code of conduct, architecture guide, security guide, and documentation index.
+- Removed duplicate `.env` entries from `.gitignore`.
+
 ## [1.0.1] – 2026-11-02
 
 ### Added

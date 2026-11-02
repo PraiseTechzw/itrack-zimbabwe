@@ -12,6 +12,7 @@ This directory contains the project documentation for the iTrack Zimbabwe ERP ap
 - [Deployment](DEPLOYMENT.md) – Apache, Nginx, PHP-FPM, permissions, and production checklist
 - [Security](SECURITY.md) – hardening and responsible disclosure guidance
 - [Screenshots](screenshots/README.md) – full current visual gallery and animated product tour
+- [Changelog](../CHANGELOG.md) – formal release history and verification notes
 
 ## Project summary
 

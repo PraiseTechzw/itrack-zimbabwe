@@ -358,7 +358,7 @@ For production deployments:
 - Restrict database, log, upload, and backup permissions.
 - Keep PHP, the web server, and database server updated.
 
-Read the [installation guide](docs/INSTALLATION.md), [deployment guide](docs/DEPLOYMENT.md), and [security guide](docs/SECURITY.md) for additional guidance. Report security issues privately to the repository maintainer rather than opening a public issue.
+Read the [installation guide](docs/INSTALLATION.md), [deployment guide](docs/DEPLOYMENT.md), and [security guide](docs/SECURITY.md) for additional guidance. See the [changelog](CHANGELOG.md) for release history. Report security issues privately to the repository maintainer rather than opening a public issue.
 
 ## License
 

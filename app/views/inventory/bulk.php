@@ -7,14 +7,10 @@ $esc = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'
 <style>
 .bulk-hero{padding:22px 25px;margin-bottom:18px;border-radius:16px;background:linear-gradient(115deg,#17243d,#334d7a);color:#fff}.bulk-hero h1{margin:0 0 5px;font-size:23px;font-weight:800}.bulk-hero p{margin:0;color:#c3cee0;font-size:12px}.bulk-row{display:grid;grid-template-columns:1.05fr 1.3fr .55fr 1.1fr .6fr .8fr .8fr 38px;gap:10px;align-items:end;padding:13px;border:1px solid #e7ebf1;border-radius:12px;background:#fff}.bulk-row+.bulk-row{margin-top:10px}.bulk-row label{font-size:10px;font-weight:700;color:#6e7c90;margin-bottom:5px}.bulk-row .form-control,.bulk-row .form-select{font-size:12px}.bulk-remove{height:38px}@media(max-width:900px){.bulk-row{grid-template-columns:repeat(2,minmax(0,1fr))}.bulk-remove{grid-column:2;justify-self:end}}@media(max-width:500px){.bulk-row{grid-template-columns:1fr 1fr}.bulk-row>div:nth-child(2){grid-column:span 2}}
 </style>
-<div class="bulk-hero"><h1>Bulk add inventory</h1><p>Enter several stock lines or upload an Excel workbook (.xlsx) / CSV file. Use columns: item_category, item_type, quantity, identifier, unit, cost_price, selling_price. FLS, cameras, and SIM lines must be one serialized item per row.</p></div>
+<div class="bulk-hero"><h1>Bulk add inventory</h1><p>Enter several stock lines at once. FLS, cameras, and SIM lines must be one serialized item per row.</p></div>
 <div class="card border-0 shadow-sm"><div class="card-body p-3 p-lg-4">
 <?php if (!empty($error)): ?><div class="alert alert-danger"><?= $esc($error) ?></div><?php endif; ?>
-<form method="post" id="bulk-form" enctype="multipart/form-data"><?= $this->csrfField() ?>
-<div class="row g-2 align-items-end mb-4 p-3 rounded-3 bg-light">
-    <div class="col-md-8"><label class="form-label fw-semibold" for="inventory-file">Upload Excel or CSV</label><input class="form-control" type="file" id="inventory-file" name="inventory_file" accept=".xlsx,.csv"><div class="form-text">Maximum 5 MB and 500 data rows. Uploading a file uses its first worksheet (Excel) or first CSV sheet.</div></div>
-    <div class="col-md-4"><div class="small text-secondary">Accepted categories: Tracker, FLS, Cameras, Sim cards. Leave the file empty to use the manual rows below.</div></div>
-</div>
+<form method="post" id="bulk-form"><?= $this->csrfField() ?>
 <div id="bulk-rows">
 <?php foreach ($rows as $index => $row): ?>
 <div class="bulk-row">

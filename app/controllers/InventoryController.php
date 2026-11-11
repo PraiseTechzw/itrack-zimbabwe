@@ -2,7 +2,7 @@
 
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/Product.php';
-require_once dirname(__DIR__) . '/helpers/spreadsheet.php';
+require_once dirname(__DIR__) . '/services/XlsxReport.php';
 
 class InventoryController extends Controller
 {
@@ -17,6 +17,29 @@ class InventoryController extends Controller
     {
         $this->requireModuleAccess('inventory', ['Administrator','Procurement Officer','Store Officer','Staff']);
         $this->view('inventory/index', ['products' => $this->productModel->all()]);
+    }
+
+    public function export(): void
+    {
+        $this->requireModuleAccess('inventory', ['Administrator','Procurement Officer','Store Officer','Staff']);
+        $rows = array_map(static fn(array $product): array => [
+            'inventory_id' => (int)$product['id'],
+            'category' => (string)($product['item_category'] ?? ''),
+            'item_type' => (string)($product['item_type'] ?? $product['device_type'] ?? ''),
+            'serial_imei_sim' => (string)($product['imei'] ?? $product['sim_number'] ?? ''),
+            'sku' => (string)($product['sku'] ?? ''),
+            'unit' => (string)($product['unit'] ?? 'pcs'),
+            'quantity_in_stock' => (int)($product['opening_stock'] ?? 0),
+            'cost_price' => (float)($product['cost_price'] ?? 0),
+            'selling_price' => (float)($product['selling_price'] ?? 0),
+            'reorder_level' => (int)($product['reorder_level'] ?? 0),
+            'status' => (string)($product['status'] ?? ''),
+        ], $this->productModel->all());
+        $workbook = (new XlsxReport())->build($rows, 'Inventory');
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="itrack-inventory.xlsx"');
+        header('Content-Length: ' . strlen($workbook));
+        echo $workbook;
     }
 
     public function create(): void
@@ -63,20 +86,13 @@ class InventoryController extends Controller
                 $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Invalid security token']);
                 return;
             }
-            $uploaded = (int)($_FILES['inventory_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
-            try {
-                if ($uploaded) {
-                    $rows = readInventorySpreadsheet($_FILES['inventory_file']);
-                } else {
-                    $incomingRows = $_POST['items'] ?? [];
-                    if (!is_array($incomingRows)) throw new InvalidArgumentException('Submit valid inventory rows or choose an Excel/CSV file.');
-                    $rows = array_values(array_filter($incomingRows, static fn($row) => is_array($row) && (trim((string)($row['item_type'] ?? '')) !== '' || (int)($row['quantity'] ?? 0) > 0)));
-                }
-            } catch (InvalidArgumentException $exception) {
-                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => $exception->getMessage()]);
+            $incomingRows = $_POST['items'] ?? [];
+            if (!is_array($incomingRows)) {
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => [], 'error' => 'Submit valid inventory rows.']);
                 return;
             }
-            $maximumRows = $uploaded ? 500 : 50;
+            $rows = array_values(array_filter($incomingRows, static fn($row) => is_array($row) && (trim((string)($row['item_type'] ?? '')) !== '' || (int)($row['quantity'] ?? 0) > 0)));
+            $maximumRows = 50;
             $valid = count($rows) > 0 && count($rows) <= $maximumRows;
             $identifiers = [];
             foreach ($rows as &$row) {

@@ -23,7 +23,8 @@ Inventory supports the stock register for trackers, FLS units, cameras, SIM card
 The inventory workflows include:
 
 - Single-item create, edit, and delete.
-- Bulk stock entry for several rows at once.
+- Bulk stock entry for several rows at once, entered manually.
+- Download of the current inventory register as an Excel workbook.
 - Serialized-item validation for FLS units and cameras.
 - Stock movement and quantity tracking.
 - API listing through the inventory endpoint.

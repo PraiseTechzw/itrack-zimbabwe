@@ -11,7 +11,7 @@ $categories = array_unique(array_map(static fn($p) => $p['item_category'] ?? 'Tr
 </style>
 <section class="inventory-hero">
     <div><h1>Inventory</h1><p>Track stock levels, unit prices, and equipment available for installations.</p></div>
-    <div class="d-flex gap-2"><a class="btn btn-light" href="/index.php?controller=inventory&action=createBulk"><i class="fa-solid fa-layer-group me-2"></i>Bulk add</a><a class="btn btn-primary" href="/index.php?controller=inventory&action=create"><i class="fa-solid fa-plus me-2"></i>Add item</a></div>
+    <div class="d-flex flex-wrap gap-2"><a class="btn btn-light" href="/index.php?controller=inventory&action=export"><i class="fa-solid fa-file-excel me-2"></i>Download Excel</a><a class="btn btn-light" href="/index.php?controller=inventory&action=createBulk"><i class="fa-solid fa-layer-group me-2"></i>Bulk add</a><a class="btn btn-primary" href="/index.php?controller=inventory&action=create"><i class="fa-solid fa-plus me-2"></i>Add item</a></div>
 </section>
 <div class="inventory-stats">
     <div class="inventory-stat"><span>Product types</span><strong><?= count($products) ?></strong></div>

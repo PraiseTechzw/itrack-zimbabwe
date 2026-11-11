@@ -1,36 +1,44 @@
 ---
-
 name: Bug report
+about: Report a reproducible problem with the application
 title: "[BUG] "
-description: Report a problem with the application
 labels: bug
-body:
+assignees: ''
+---
 
-- type: textarea
-  id: description
-  attributes:
-  label: Description
-  description: Describe the issue clearly.
-  placeholder: What happened?
-  validations:
-  required: true
-- type: textarea
-  id: steps
-  attributes:
-  label: Steps to reproduce
-  description: Provide the steps to reproduce the problem.
-  placeholder: 1. Open the app...
-  validations:
-  required: true
-- type: textarea
-  id: expected
-  attributes:
-  label: Expected behavior
-  description: What should happen instead?
-  validations:
-  required: true
-- type: textarea
-  id: environment
-  attributes:
-  label: Environment
-  description: Include PHP version, browser, and operating system if relevant.
+## Description
+
+<!-- Describe what went wrong and who or what is affected. Do not include private customer data. -->
+
+## Steps to reproduce
+
+1.
+2.
+3.
+
+## Expected behavior
+
+<!-- What should have happened? -->
+
+## Actual behavior
+
+<!-- What happened instead? Include exact safe error text where useful. -->
+
+## Environment
+
+- iTrack version/commit:
+- PHP version:
+- Database: SQLite / MySQL (version if known)
+- Browser and version:
+- Operating system:
+- Deployment: built-in server / Apache / Nginx / other
+
+## Evidence
+
+<!-- Add sanitized logs or screenshots. Remove credentials, tokens, personal data, and production records. -->
+
+## Additional context
+
+<!-- Include relevant configuration flags, migration status, or recent changes. -->
+
+> Do not report security vulnerabilities in a public issue. Follow the private process in [docs/SECURITY.md](../../docs/SECURITY.md).

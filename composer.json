@@ -2,6 +2,7 @@
   "name": "itrack-zimbabwe/itrack-zimbabwe",
   "description": "ERP-style PHP application scaffold for iTrack Zimbabwe",
   "type": "project",
+  "license": "MIT",
   "require": {
     "php": ">=8.1"
   },

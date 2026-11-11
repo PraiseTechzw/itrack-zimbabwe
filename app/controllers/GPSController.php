@@ -2,14 +2,64 @@
 
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/GPSDevice.php';
+require_once dirname(__DIR__) . '/models/Client.php';
+require_once dirname(__DIR__) . '/models/User.php';
 
 class GPSController extends Controller
 {
     private GPSDevice $gpsModel;
+    private Client $clientModel;
+    private User $userModel;
 
     public function __construct()
     {
         $this->gpsModel = new GPSDevice();
+        $this->clientModel = new Client();
+        $this->userModel = new User();
+    }
+
+    private function installationOptions(?array $device = null): array
+    {
+        return [
+            'inventory' => $this->gpsModel->inventoryChoices($device),
+            'clients' => $this->clientModel->active(),
+            'users' => $this->userModel->active(),
+            'supportUsers' => $this->userModel->activeByRole('IT Support'),
+        ];
+    }
+
+    private function validateInstallation(array $data, ?int $excludeId = null): ?string
+    {
+        $package = (string)($data['package_type'] ?? '');
+        $cameraOnly = $package === 'Camera only';
+        $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
+        $needsCamera = in_array($package, ['Basic + FLS + Camera', 'Camera only', 'Camera + Basic'], true);
+        $trackerId = (int)($data['tracker_product_id'] ?? 0);
+        $trackerImei = $cameraOnly ? null : $this->gpsModel->trackerIdentifierFromInventory(
+            $trackerId,
+            (string)($data['tracker_identifier'] ?? '')
+        );
+        if (!in_array($package, GPSDevice::packageTypes(), true) || (!$cameraOnly && $trackerImei === null)
+            || ($cameraOnly && $trackerId > 0)
+            || ($needsFls && (int)($data['fls_product_id'] ?? 0) < 1)
+            || (!$needsFls && (int)($data['fls_product_id'] ?? 0) > 0)
+            || ($needsCamera && (int)($data['camera_product_id'] ?? 0) < 1)
+            || (!$needsCamera && (int)($data['camera_product_id'] ?? 0) > 0)) {
+            return 'Choose a valid package and in-stock tracker. The selected package must include the required FLS and camera inventory items.';
+        }
+        if ($trackerImei !== null && $this->gpsModel->imeiExists($trackerImei, $excludeId)) {
+            return 'That tracker IMEI / serial is already registered.';
+        }
+        if ((int)($data['sim_product_id'] ?? 0) > 0 && (int)$data['sim_product_id'] === (int)($data['camera_sim_product_id'] ?? 0)) {
+            return 'Choose different SIM lines for the tracker and camera.';
+        }
+        $clientIds = array_map(static fn(array $client): int => (int)$client['id'], $this->clientModel->active());
+        $userIds = array_map(static fn(array $user): int => (int)$user['id'], $this->userModel->active());
+        $supportIds = array_map(static fn(array $user): int => (int)$user['id'], $this->userModel->activeByRole('IT Support'));
+        if (!in_array((int)($data['client_id'] ?? 0), $clientIds, true)) return 'Choose an active client.';
+        if (!in_array((int)($data['installer_id'] ?? 0), $userIds, true)) return 'Choose an active installer.';
+        if (!in_array((int)($data['support_id'] ?? 0), $supportIds, true)) return 'Choose an active IT support person.';
+        return null;
     }
 
     public function index(): void
@@ -27,80 +77,45 @@ class GPSController extends Controller
         $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!$this->validateCsrf()) {
-                $this->view('gps/form', [
-                    'title' => 'Create Installation',
-                    'mode' => 'create',
-                    'error' => 'Invalid security token',
-                    'device' => $_POST,
-                    'packageTypes' => GPSDevice::packageTypes(),
-                    'inventory' => $this->gpsModel->inventoryChoices(),
-                ]);
+            $error = !$this->validateCsrf() ? 'Invalid security token.' : $this->validateInstallation($_POST);
+            if ($error !== null) {
+                $this->view('gps/form', ['title' => 'Create Installation', 'mode' => 'create', 'error' => $error, 'device' => $_POST, 'packageTypes' => GPSDevice::packageTypes()] + $this->installationOptions());
                 return;
             }
-
-            $packageTypes = GPSDevice::packageTypes();
-            $invalidFields = !in_array($_POST['package_type'] ?? '', $packageTypes, true);
-            $needsFls = in_array($_POST['package_type'] ?? '', ['Basic + FLS', 'Basic + FLS + Camera'], true);
-            $needsCamera = ($_POST['package_type'] ?? '') === 'Basic + FLS + Camera';
-            $trackerImei = $this->gpsModel->trackerIdentifierFromInventory((int)($_POST['tracker_product_id'] ?? 0), (string)($_POST['tracker_identifier'] ?? ''));
-            if ($invalidFields || $trackerImei === null || ($needsFls && empty($_POST['fls_product_id'])) || ($needsCamera && empty($_POST['camera_product_id']))) {
-                $error = 'Choose an in-stock tracker and enter its numeric IMEI / serial. Required FLS and camera serials must already be recorded on their inventory items.';
-                $this->view('gps/form', [
-                    'title' => 'Create Installation', 'mode' => 'create', 'error' => $error,
-                    'device' => $_POST, 'packageTypes' => $packageTypes, 'inventory' => $this->gpsModel->inventoryChoices(),
-                ]);
-                return;
-            }
-            if ($trackerImei !== null && $this->gpsModel->imeiExists($trackerImei)) {
-                $this->view('gps/form', ['title' => 'Create Installation', 'mode' => 'create', 'error' => 'That IMEI is already registered.', 'device' => $_POST, 'packageTypes' => $packageTypes, 'inventory' => $this->gpsModel->inventoryChoices()]); return;
-            }
-            try { $this->gpsModel->create($_POST); } catch (InvalidArgumentException $e) {
-                $this->view('gps/form', ['title' => 'Create Installation', 'mode' => 'create', 'error' => $e->getMessage(), 'device' => $_POST, 'packageTypes' => $packageTypes, 'inventory' => $this->gpsModel->inventoryChoices()]); return;
-            }
+            $this->gpsModel->create($_POST);
             $this->redirect('/index.php?controller=gps');
         }
 
-        $this->view('gps/form', [
-            'title' => 'Create Installation',
-            'mode' => 'create',
-            'device' => [],
-            'packageTypes' => GPSDevice::packageTypes(),
-            'inventory' => $this->gpsModel->inventoryChoices(),
-        ]);
+        $this->view('gps/form', ['title' => 'Create Installation', 'mode' => 'create', 'device' => [], 'packageTypes' => GPSDevice::packageTypes()] + $this->installationOptions());
     }
 
     public function createBulk(): void
     {
         $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
-        $choices = $this->gpsModel->inventoryChoices();
+        $options = $this->installationOptions();
         $packages = GPSDevice::packageTypes();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $rows = $_POST['installations'] ?? [];
-            $view = fn(string $error) => $this->view('gps/bulk', ['title' => 'Bulk installations', 'rows' => $rows, 'inventory' => $choices, 'packageTypes' => $packages, 'error' => $error]);
+            $view = fn(string $error) => $this->view('gps/bulk', ['title' => 'Bulk installations', 'rows' => $rows, 'packageTypes' => $packages, 'error' => $error] + $options);
             if (!$this->validateCsrf()) { $view('Invalid security token.'); return; }
             if (!is_array($rows)) { $view('Submit one or more valid installation rows.'); return; }
-            $rows = array_values(array_filter($rows, static fn($row) => is_array($row) && ((int)($row['tracker_product_id'] ?? 0) > 0 || (int)($row['fls_product_id'] ?? 0) > 0 || (int)($row['camera_product_id'] ?? 0) > 0 || (int)($row['sim_product_id'] ?? 0) > 0)));
+            $rows = array_values(array_filter($rows, static fn($row) => is_array($row) && ((int)($row['tracker_product_id'] ?? 0) > 0 || (int)($row['camera_product_id'] ?? 0) > 0)));
             $imeis = [];
             $valid = count($rows) > 0 && count($rows) <= 50;
             foreach ($rows as $row) {
                 $imei = $this->gpsModel->trackerIdentifierFromInventory((int)($row['tracker_product_id'] ?? 0), (string)($row['tracker_identifier'] ?? ''));
-                $package = (string)($row['package_type'] ?? '');
-                $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
-                $needsCamera = $package === 'Basic + FLS + Camera';
-                if (!in_array($package, $packages, true) || $imei === null || ($needsFls && (int)($row['fls_product_id'] ?? 0) < 1) || (!$needsFls && (int)($row['fls_product_id'] ?? 0) > 0) || ($needsCamera && (int)($row['camera_product_id'] ?? 0) < 1) || (!$needsCamera && (int)($row['camera_product_id'] ?? 0) > 0) || ($imei !== null && (isset($imeis[$imei]) || $this->gpsModel->imeiExists($imei)))) $valid = false;
+                $cameraOnly = (string)($row['package_type'] ?? '') === 'Camera only';
+                if ($this->validateInstallation($row) !== null || (!$cameraOnly && $imei === null) || ($imei !== null && isset($imeis[$imei]))) $valid = false;
                 if ($imei !== null) $imeis[$imei] = true;
             }
-            if (!$valid) { $view('Add 1–50 rows with an in-stock tracker and a unique numeric IMEI / serial for each. Select the FLS or camera inventory items required by each package.'); return; }
+            if (!$valid) { $view('Add 1–50 valid rows with a unique tracker IMEI / serial, client, installer, IT support person, and all package-required inventory items.'); return; }
             foreach ($rows as &$row) $row['installed_at'] = trim((string)($row['installed_at'] ?? '')) ?: null;
             unset($row);
-            try { $this->gpsModel->createMany($rows, []); }
-            catch (InvalidArgumentException $e) { $view($e->getMessage()); return; }
-            catch (Throwable $e) { $view('The batch could not be saved. Check that each IMEI is unique and there is enough stock for all selected equipment.'); return; }
+            $this->gpsModel->createMany($rows, []);
             $this->redirect('/index.php?controller=gps');
             return;
         }
-        $this->view('gps/bulk', ['title' => 'Bulk installations', 'inventory' => $choices, 'packageTypes' => $packages]);
+        $this->view('gps/bulk', ['title' => 'Bulk installations', 'packageTypes' => $packages] + $options);
     }
 
     public function edit(): void
@@ -109,35 +124,19 @@ class GPSController extends Controller
         $id = $this->sanitizeInt($_GET['id'] ?? 0);
         $device = $this->gpsModel->find($id);
         if (!$device) { $this->redirect('/index.php?controller=gps'); return; }
+        if (($device['status'] ?? '') === 'deinstalled') { $this->redirect('/index.php?controller=gps'); return; }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!$this->validateCsrf()) {
-                $merged = array_merge($device, $_POST);
-                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'Invalid security token']);
-                return;
-            }
-            $package = (string)($_POST['package_type'] ?? '');
-            $needsFls = in_array($package, ['Basic + FLS', 'Basic + FLS + Camera'], true);
-            $needsCamera = $package === 'Basic + FLS + Camera';
-            $trackerImei = $this->gpsModel->trackerIdentifierFromInventory((int)($_POST['tracker_product_id'] ?? 0), (string)($_POST['tracker_identifier'] ?? ''));
-            $invalid = !in_array($package, GPSDevice::packageTypes(), true) || $trackerImei === null || ($needsFls && (int)($_POST['fls_product_id'] ?? 0) < 1) || (!$needsFls && (int)($_POST['fls_product_id'] ?? 0) > 0) || ($needsCamera && (int)($_POST['camera_product_id'] ?? 0) < 1) || (!$needsCamera && (int)($_POST['camera_product_id'] ?? 0) > 0);
             $merged = array_merge($device, $_POST);
-            if ($invalid) {
-                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'Choose an in-stock tracker and enter its numeric IMEI / serial. Basic installations do not include FLS or camera.']);
+            $error = !$this->validateCsrf() ? 'Invalid security token.' : $this->validateInstallation($_POST, $id);
+            if ($error !== null) {
+                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'error' => $error] + $this->installationOptions($merged));
                 return;
             }
-            if ($trackerImei !== null && $this->gpsModel->imeiExists($trackerImei, $id)) {
-                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => 'That IMEI is already registered.']);
-                return;
-            }
-            try { $this->gpsModel->update($id, $_POST); }
-            catch (InvalidArgumentException $e) {
-                $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $merged, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($merged), 'error' => $e->getMessage()]);
-                return;
-            }
+            $this->gpsModel->update($id, $_POST);
             $this->redirect('/index.php?controller=gps');
             return;
         }
-        $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $device, 'packageTypes' => GPSDevice::packageTypes(), 'inventory' => $this->gpsModel->inventoryChoices($device)]);
+        $this->view('gps/form', ['title' => 'Edit Installation', 'mode' => 'edit', 'device' => $device, 'packageTypes' => GPSDevice::packageTypes()] + $this->installationOptions($device));
     }
 
     public function delete(): void
@@ -150,5 +149,40 @@ class GPSController extends Controller
         }
 
         $this->redirect('/index.php?controller=gps');
+    }
+
+    public function deinstallations(): void
+    {
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
+        $this->view('gps/deinstallations', [
+            'title' => 'Deinstallations',
+            'activeInstallations' => $this->gpsModel->activeForDeinstallation(),
+            'deinstallations' => $this->gpsModel->deinstallations(),
+        ]);
+    }
+
+    public function deinstall(): void
+    {
+        $this->requireModuleAccess('gps', ['Administrator','Technician','Store Officer','IT Support']);
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect('/index.php?controller=gps&action=deinstallations');
+        }
+        $installationId = $this->sanitizeInt($_POST['gps_device_id'] ?? 0);
+        $error = !$this->validateCsrf() ? 'Invalid security token.' : null;
+        if ($error === null) {
+            try {
+                $this->gpsModel->deinstall($installationId, $_POST, (int)($_SESSION['user']['id'] ?? 0));
+                $this->redirect('/index.php?controller=gps&action=deinstallations');
+            } catch (InvalidArgumentException $exception) {
+                $error = $exception->getMessage();
+            }
+        }
+        $this->view('gps/deinstallations', [
+            'title' => 'Deinstallations',
+            'activeInstallations' => $this->gpsModel->activeForDeinstallation(),
+            'deinstallations' => $this->gpsModel->deinstallations(),
+            'error' => $error,
+            'formData' => $_POST,
+        ]);
     }
 }

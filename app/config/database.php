@@ -123,7 +123,7 @@ class Database
             device_name TEXT NOT NULL,
             device_type TEXT DEFAULT 'Galileosky 7x',
             package_type TEXT DEFAULT 'Basic installation',
-            imei TEXT NOT NULL UNIQUE,
+            imei TEXT UNIQUE,
             serial TEXT,
             sim_number TEXT,
             status TEXT DEFAULT 'available',
@@ -151,6 +151,7 @@ class Database
         self::ensureProductImei($pdo);
         self::ensureProductDeviceDetails($pdo);
         self::ensureInventoryInstallationFields($pdo);
+        self::ensureWorkflowFields($pdo);
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS stocks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -348,6 +349,7 @@ class Database
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE SET NULL
         )");
+        self::ensureRequisitionFields($pdo);
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS approvals (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -371,14 +373,22 @@ class Database
             FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
         )");
 
-        $pdo->exec("CREATE TABLE IF NOT EXISTS notifications (
+        $pdo->exec("CREATE TABLE IF NOT EXISTS deinstallations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            title TEXT NOT NULL,
-            message TEXT,
-            is_read INTEGER NOT NULL DEFAULT 0,
+            gps_device_id INTEGER,
+            client_id INTEGER,
+            device_type TEXT NOT NULL,
+            imei TEXT,
+            camera_serial TEXT,
+            registration_number TEXT NOT NULL,
+            chassis_number TEXT NOT NULL,
+            removed_at TEXT NOT NULL,
+            reason TEXT,
+            created_by INTEGER,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            FOREIGN KEY (gps_device_id) REFERENCES gps_devices(id) ON DELETE SET NULL,
+            FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
+            FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
         )");
 
         $pdo->exec("CREATE TABLE IF NOT EXISTS permissions (
@@ -474,8 +484,6 @@ class Database
         $pdo->exec("INSERT OR IGNORE INTO reports (report_name, report_type, filters, generated_by) VALUES
             ('Monthly Inventory', 'inventory', 'month=current', 1),
             ('Sales Summary', 'sales', 'month=current', 1)");
-        $pdo->exec("INSERT OR IGNORE INTO notifications (user_id, title, message, is_read) VALUES
-            (1, 'Welcome', 'Your ERP environment is ready.', 0)");
         $pdo->exec("INSERT OR IGNORE INTO permissions (name, description) VALUES
             ('manage_users', 'Manage application users'),
             ('manage_inventory', 'Manage inventory and products'),
@@ -520,6 +528,41 @@ class Database
         $gpsExisting = array_column($cols, 'name');
         foreach (['tracker_product_id' => 'INTEGER', 'fls_product_id' => 'INTEGER', 'camera_product_id' => 'INTEGER', 'sim_product_id' => 'INTEGER', 'fls_serial' => 'TEXT', 'camera_serial' => 'TEXT'] as $name => $definition) {
             if (!in_array($name, $gpsExisting, true)) $pdo->exec("ALTER TABLE gps_devices ADD COLUMN {$name} {$definition}");
+        }
+    }
+
+    private static function ensureWorkflowFields(PDO $pdo): void
+    {
+        $columns = $pdo->query('PRAGMA table_info(gps_devices)')->fetchAll();
+        $existing = array_column($columns, 'name');
+        foreach ([
+            'client_id' => 'INTEGER',
+            'installer_id' => 'INTEGER',
+            'support_id' => 'INTEGER',
+            'camera_sim_product_id' => 'INTEGER',
+            'camera_sim_number' => 'TEXT',
+            'registration_number' => 'TEXT',
+            'chassis_number' => 'TEXT',
+            'deinstalled_at' => 'TEXT',
+        ] as $name => $definition) {
+            if (!in_array($name, $existing, true)) $pdo->exec("ALTER TABLE gps_devices ADD COLUMN {$name} {$definition}");
+        }
+    }
+
+    private static function ensureRequisitionFields(PDO $pdo): void
+    {
+        $columns = $pdo->query('PRAGMA table_info(requisitions)')->fetchAll();
+        $existing = array_column($columns, 'name');
+        foreach ([
+            'request_type' => "TEXT NOT NULL DEFAULT 'other'",
+            'client_id' => 'INTEGER',
+            'beneficiary_name' => 'TEXT',
+            'requester_signature' => 'TEXT',
+            'approver_signature' => 'TEXT',
+            'installation_items' => 'TEXT',
+            'items_json' => 'TEXT',
+        ] as $name => $definition) {
+            if (!in_array($name, $existing, true)) $pdo->exec("ALTER TABLE requisitions ADD COLUMN {$name} {$definition}");
         }
     }
 

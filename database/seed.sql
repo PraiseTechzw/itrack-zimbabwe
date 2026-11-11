@@ -100,10 +100,6 @@ INSERT INTO reports (report_name, report_type, filters, generated_by) VALUES
 ('Sales Summary', 'sales', 'month=current', 1)
 ON DUPLICATE KEY UPDATE report_type=VALUES(report_type);
 
-INSERT INTO notifications (user_id, title, message, is_read) VALUES
-(1, 'Welcome', 'Your ERP environment is ready.', 0)
-ON DUPLICATE KEY UPDATE title=VALUES(title);
-
 INSERT INTO permissions (name, description) VALUES
 ('manage_users', 'Manage application users'),
 ('manage_inventory', 'Manage inventory and products'),

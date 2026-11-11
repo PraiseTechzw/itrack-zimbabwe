@@ -187,10 +187,6 @@ class ReportsController extends Controller
 			}
 			$data['generated_by'] = $_SESSION['user']['id'] ?? null;
 			$this->model->create($data);
-			$userId = (int) ($_SESSION['user']['id'] ?? 0);
-			if ($userId > 0) {
-				createNotification($userId, 'Report generated', 'A new report was generated successfully.');
-			}
 		}
 		$this->redirect('/index.php?controller=reports');
 	}

@@ -33,6 +33,16 @@ class User extends Model
         return $this->fetchAll('SELECT * FROM users ORDER BY id DESC');
     }
 
+    public function active(): array
+    {
+        return $this->fetchAll("SELECT id, name, role FROM users WHERE status = 'active' ORDER BY name ASC");
+    }
+
+    public function activeByRole(string $role): array
+    {
+        return $this->fetchAll("SELECT id, name, role FROM users WHERE status = 'active' AND role = :role ORDER BY name ASC", [':role' => $role]);
+    }
+
     public function find(int $id): ?array
     {
         return $this->fetchOne('SELECT * FROM users WHERE id = :id', [':id' => $id]);

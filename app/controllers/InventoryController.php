@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/Product.php';
+require_once dirname(__DIR__) . '/helpers/spreadsheet.php';
 
 class InventoryController extends Controller
 {
@@ -31,22 +32,22 @@ class InventoryController extends Controller
             $types = Product::itemTypes();
             $type = trim((string) ($_POST['item_type'] ?? ''));
             $identifier = trim((string) ($_POST['identifier'] ?? ''));
-            $needsIdentifier = in_array($category, ['FLS', 'Cameras'], true);
+            $needsIdentifier = in_array($category, ['FLS', 'Cameras', 'Sim cards'], true);
             $duplicateIdentifier = $identifier !== '' && $this->productModel->imeiExists($identifier);
-            $quantity = (int)($_POST['quantity'] ?? 0);
-            $invalidTrackedQuantity = ($needsIdentifier && $quantity !== 1) || ($identifier !== '' && $quantity !== 1);
-            if (!isset($types[$category]) || !in_array($type, $types[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $duplicateIdentifier || $invalidTrackedQuantity || $quantity < 1) {
+            if (!isset($types[$category]) || !in_array($type, $types[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $duplicateIdentifier) {
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
                     'product' => $_POST,
                     'deviceTypes' => $deviceTypes,
                     'itemTypes' => $types,
-                    'error' => $duplicateIdentifier ? 'That serial number / IMEI is already registered.' : ($invalidTrackedQuantity ? 'Serialized inventory items must have quantity 1. Trackers without an inventory IMEI can be added in bulk.' : ($needsIdentifier && $identifier === '' ? 'Enter the IMEI or serial number for this inventory item.' : 'Choose a valid item and type, enter a positive quantity, and use digits only for the serial / IMEI.')),
+                    'error' => $duplicateIdentifier ? 'That serial number / IMEI is already registered.' : ($needsIdentifier && $identifier === '' ? 'Enter the unique numeric serial, IMEI, or SIM line number for this item.' : 'Choose a valid item and type, and use digits only for the serial / IMEI.'),
                 ]);
                 return;
             }
-            $this->productModel->create($_POST);
+            $data = $_POST;
+            $data['quantity'] = 1;
+            $this->productModel->create($data);
             $this->redirect('/index.php?controller=inventory');
         }
 
@@ -62,24 +63,45 @@ class InventoryController extends Controller
                 $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Invalid security token']);
                 return;
             }
-            $rows = array_values(array_filter($_POST['items'] ?? [], static fn($row) => is_array($row) && (trim((string)($row['item_type'] ?? '')) !== '' || (int)($row['quantity'] ?? 0) > 0)));
-            $valid = count($rows) > 0 && count($rows) <= 50;
+            $uploaded = (int)($_FILES['inventory_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
+            try {
+                if ($uploaded) {
+                    $rows = readInventorySpreadsheet($_FILES['inventory_file']);
+                } else {
+                    $incomingRows = $_POST['items'] ?? [];
+                    if (!is_array($incomingRows)) throw new InvalidArgumentException('Submit valid inventory rows or choose an Excel/CSV file.');
+                    $rows = array_values(array_filter($incomingRows, static fn($row) => is_array($row) && (trim((string)($row['item_type'] ?? '')) !== '' || (int)($row['quantity'] ?? 0) > 0)));
+                }
+            } catch (InvalidArgumentException $exception) {
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => $exception->getMessage()]);
+                return;
+            }
+            $maximumRows = $uploaded ? 500 : 50;
+            $valid = count($rows) > 0 && count($rows) <= $maximumRows;
             $identifiers = [];
-            foreach ($rows as $row) {
+            foreach ($rows as &$row) {
+                $categoryValue = strtolower(trim((string)($row['item_category'] ?? '')));
+                $row['item_category'] = match ($categoryValue) {
+                    'fls' => 'FLS',
+                    'camera', 'cameras' => 'Cameras',
+                    'sim card', 'sim cards', 'sim cards / lines', 'lines', 'line' => 'Sim cards',
+                    'tracker', 'trackers' => 'Tracker',
+                    default => trim((string)($row['item_category'] ?? '')),
+                };
                 $category = trim((string)($row['item_category'] ?? ''));
                 $type = trim((string)($row['item_type'] ?? ''));
                 $identifier = trim((string)($row['identifier'] ?? ''));
-                $needsIdentifier = in_array($category, ['FLS', 'Cameras'], true);
+                $needsIdentifier = in_array($category, ['FLS', 'Cameras', 'Sim cards'], true);
                 $quantity = (int)($row['quantity'] ?? 0);
                 if (!in_array($type, $types[$category] ?? [], true) || $quantity < 1 || ($needsIdentifier && ($quantity !== 1 || $identifier === '')) || ($identifier !== '' && $quantity !== 1) || !preg_match('/^\\d*$/', $identifier) || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier))) || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0) || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0) $valid = false;
                 if ($identifier !== '') $identifiers[$identifier] = true;
+                $row['unit'] = trim((string)($row['unit'] ?? 'pcs')) ?: 'pcs';
             }
+            unset($row);
             if (!$valid) {
-                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–50 valid rows. FLS and cameras require a unique numeric serial and quantity 1. Trackers may be entered as bulk stock without an IMEI, or as one serialized unit per row.']);
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–' . $maximumRows . ' valid rows. FLS, cameras, and SIM lines require a unique numeric identifier and quantity 1. Use a valid item category/type and non-negative prices.']);
                 return;
             }
-            foreach ($rows as &$row) $row['unit'] = trim((string)($row['unit'] ?? 'pcs')) ?: 'pcs';
-            unset($row);
             $this->productModel->createMany($rows, []);
             $this->redirect('/index.php?controller=inventory');
             return;
@@ -105,25 +127,20 @@ class InventoryController extends Controller
             $category = trim((string) ($_POST['item_category'] ?? ''));
             $type = trim((string) ($_POST['item_type'] ?? ''));
             $identifier = trim((string) ($_POST['identifier'] ?? ''));
-            $needsIdentifier = in_array($category, ['FLS', 'Cameras'], true);
-            $quantity = (int)($_POST['quantity'] ?? 0);
-            $invalidTrackedQuantity = ($needsIdentifier && $quantity > 1) || ($identifier !== '' && $quantity > 1);
-            if (!in_array($type, Product::itemTypes()[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $invalidTrackedQuantity || ($identifier !== '' && $this->productModel->imeiExists($identifier, $id))) {
+            $needsIdentifier = in_array($category, ['FLS', 'Cameras', 'Sim cards'], true);
+            if (!in_array($type, Product::itemTypes()[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || ($identifier !== '' && $this->productModel->imeiExists($identifier, $id))) {
                 $this->view('inventory/form', [
                     'title' => 'Edit Product',
                     'mode' => 'edit',
                     'product' => array_merge($product, $_POST),
                     'deviceTypes' => $deviceTypes,
-                    'error' => $invalidTrackedQuantity ? 'Serialized trackers, FLS units, and cameras must be one unit per inventory row.' : 'Choose a valid item/type. Trackers, FLS units, and cameras require a unique numeric serial / IMEI.', 'itemTypes' => Product::itemTypes(),
+                    'error' => 'Choose a valid item/type. FLS, cameras, and SIM lines require a unique numeric identifier.', 'itemTypes' => Product::itemTypes(),
                 ]);
                 return;
             }
-            $productName = trim((string) ($_POST['device_type'] ?? ''));
-            $this->productModel->update($id, $_POST);
-            $updatedProduct = $this->productModel->find($id);
-            if ($updatedProduct !== null && (int) ($updatedProduct['opening_stock'] ?? 0) <= (int) ($updatedProduct['reorder_level'] ?? 0)) {
-                notifyTeam(['Administrator', 'Store Officer', 'Procurement Officer'], 'Low stock alert', 'Product ' . $productName . ' is at or below its reorder level.');
-            }
+            $data = $_POST;
+            $data['quantity'] = (int)($product['opening_stock'] ?? 0);
+            $this->productModel->update($id, $data);
             $this->redirect('/index.php?controller=inventory');
         }
 

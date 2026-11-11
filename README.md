@@ -1,6 +1,6 @@
 # iTrack Zimbabwe
 
-**iTrack Zimbabwe** is a lightweight PHP 8.1+ ERP-style operations platform for managing inventory, tracker installations, procurement, sales, accounting, requisitions, reporting, notifications, and users.
+**iTrack Zimbabwe** is a lightweight PHP 8.1+ ERP-style operations platform for managing inventory, tracker installations and removals, procurement, sales, accounting, requisitions, reporting, and users.
 
 The application uses a small MVC structure built with plain PHP classes and PDO. It can run locally with SQLite and can be deployed with MySQL behind Apache, Nginx, or another PHP-capable web server.
 
@@ -19,16 +19,16 @@ The application uses a small MVC structure built with plain PHP classes and PDO.
 ### Operations modules
 
 - **Dashboard** – role-aware workspace with operational summaries and available-module access.
-- **Inventory** – stock records for trackers, FLS units, cameras, SIM cards/mobile lines, and related equipment; quantities, cost prices, selling prices, units, and optional numeric identifiers such as serial numbers, SIM numbers, or IMEIs.
-- **Bulk inventory** – create multiple stock lines in one submission, with validation for serialized items.
-- **Installations / GPS devices** – record tracker installations, tracker identifiers, and optional FLS, camera, and package equipment selected from available stock. Stock quantities are reduced when equipment is assigned.
+- **Inventory** – individually recorded trackers, FLS units, cameras, SIM lines, and related equipment, including cost and selling prices.
+- **Bulk inventory** – create multiple stock lines manually or upload Excel (`.xlsx`) / CSV files.
+- **Installations / GPS devices** – record Basic, FLS, and camera packages with a client, installer, IT support person, vehicle identifiers, and separate device/camera SIM lines. Equipment is assigned from available stock.
 - **Bulk installations** – record several installations in one workflow.
+- **Deinstallations** – record devices and cameras removed from vehicles, including registration and chassis numbers; returned equipment is restored to inventory.
 - **Clients** – customer and client organization records.
 - **Suppliers** – procurement partner records.
-- **Purchases** – purchase-order capture and status updates with supplier workflows and notifications.
+- **Purchases** – purchase-order capture and status updates with supplier workflows.
 - **Sales** – sales capture and status visibility.
-- **Requisitions** – internal requests with approval and decision workflows.
-- **Notifications** – create, edit, delete, list, and mark notifications as read.
+- **Requisitions** – installation and other-item requests with quantities, reason, amount, and requestor/approver digital signatures.
 - **Users** – staff accounts, roles, departments, and account status management.
 - **Settings** – application administration and configuration access.
 
@@ -45,6 +45,7 @@ The application uses a small MVC structure built with plain PHP classes and PDO.
 
 - PHP 8.1 or newer.
 - PDO SQLite for the local fallback, or PDO MySQL for MySQL deployments.
+- PHP ZipArchive and SimpleXML extensions to import `.xlsx` inventory workbooks (CSV imports do not need these extensions).
 - A web server such as Apache or Nginx for production, or PHP's built-in server for local development.
 - A writable `storage/` directory for the SQLite database, logs, and runtime files.
 - A writable `uploads/` directory when upload features are enabled.
@@ -166,7 +167,6 @@ Authenticated modules are routed through `public/index.php` using `controller` a
 /index.php?controller=sales
 /index.php?controller=requisition
 /index.php?controller=reports
-/index.php?controller=notification
 /index.php?controller=permissions
 /index.php?controller=settings
 ```
@@ -221,11 +221,9 @@ Useful checks from the repository root:
 # Syntax-check all PHP source files
 find app api public includes tests -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
-# Run the lightweight notification helper check
-php tests/notification_service_test.php
 ```
 
-The project currently relies primarily on PHP syntax checks, module smoke tests, and manual browser verification. The notification test expects a working configured database because it creates a notification record.
+The project currently relies primarily on PHP syntax checks, module smoke tests, and manual browser verification.
 
 Before opening a pull request, verify login, role-based navigation, CRUD actions, bulk inventory, installations, accounting workflows, report previews/exports, API responses, and password recovery in the target environment.
 

@@ -1,7 +1,6 @@
 <?php
 
 require_once dirname(__DIR__) . '/helpers/auth.php';
-require_once dirname(__DIR__) . '/helpers/notifications.php';
 require_once dirname(__DIR__) . '/models/Permission.php';
 require_once dirname(__DIR__) . '/core/Session.php';
 

@@ -12,4 +12,4 @@ This directory contains the project documentation for the iTrack Zimbabwe ERP ap
 
 ## Project summary
 
-The application is a PHP MVC ERP system for authentication, inventory, tracker installations, sales, purchases, accounting, requisitions, reports, notifications, suppliers, clients, permissions, and user administration. The root [README](../README.md) contains the current setup, configuration, module, API, and deployment overview.
+The application is a PHP MVC ERP system for authentication, inventory, installations and deinstallations, sales, purchases, accounting, requisitions, reports, suppliers, clients, permissions, and user administration. The root [README](../README.md) contains the current setup, configuration, module, API, and deployment overview.

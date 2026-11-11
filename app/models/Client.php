@@ -9,6 +9,11 @@ class Client extends Model
         return $this->fetchAll('SELECT * FROM clients ORDER BY company_name ASC');
     }
 
+    public function active(): array
+    {
+        return $this->fetchAll("SELECT * FROM clients WHERE status = 'active' ORDER BY company_name ASC");
+    }
+
     public function find(int $id): ?array
     {
         return $this->fetchOne('SELECT * FROM clients WHERE id = :id', [':id' => $id]);

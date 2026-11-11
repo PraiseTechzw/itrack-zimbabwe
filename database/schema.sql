@@ -54,18 +54,44 @@ CREATE TABLE IF NOT EXISTS gps_devices (
   device_name VARCHAR(150) NOT NULL,
   device_type VARCHAR(80) NOT NULL DEFAULT 'Galileosky 7x',
   package_type VARCHAR(100) NOT NULL DEFAULT 'Basic installation',
-  imei VARCHAR(100) NOT NULL UNIQUE,
+  imei VARCHAR(100) NULL UNIQUE,
   serial VARCHAR(100),
   sim_number VARCHAR(50),
   tracker_product_id INT NULL,
   fls_product_id INT NULL,
   camera_product_id INT NULL,
   sim_product_id INT NULL,
+  camera_sim_product_id INT NULL,
   fls_serial VARCHAR(100),
   camera_serial VARCHAR(100),
+  camera_sim_number VARCHAR(50),
+  client_id INT NULL,
+  installer_id INT NULL,
+  support_id INT NULL,
+  registration_number VARCHAR(100),
+  chassis_number VARCHAR(100),
+  deinstalled_at DATETIME NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'available',
   installed_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS deinstallations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  gps_device_id INT NULL,
+  client_id INT NULL,
+  device_type VARCHAR(80) NOT NULL,
+  imei VARCHAR(100),
+  camera_serial VARCHAR(100),
+  registration_number VARCHAR(100) NOT NULL,
+  chassis_number VARCHAR(100) NOT NULL,
+  removed_at DATE NOT NULL,
+  reason TEXT,
+  created_by INT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (gps_device_id) REFERENCES gps_devices(id) ON DELETE SET NULL,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL,
+  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS products (
@@ -280,8 +306,16 @@ CREATE TABLE IF NOT EXISTS requisitions (
   status VARCHAR(50) NOT NULL DEFAULT 'pending',
   total_amount DECIMAL(14,2) NOT NULL DEFAULT 0.00,
   remarks TEXT,
+  request_type VARCHAR(30) NOT NULL DEFAULT 'other',
+  client_id INT NULL,
+  beneficiary_name VARCHAR(150),
+  requester_signature MEDIUMTEXT,
+  approver_signature MEDIUMTEXT,
+  installation_items MEDIUMTEXT,
+  items_json MEDIUMTEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE SET NULL
+  FOREIGN KEY (requested_by) REFERENCES users(id) ON DELETE SET NULL,
+  FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS approvals (
@@ -304,16 +338,6 @@ CREATE TABLE IF NOT EXISTS reports (
   generated_by INT NULL,
   generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (generated_by) REFERENCES users(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
-
-CREATE TABLE IF NOT EXISTS notifications (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NULL,
-  title VARCHAR(150) NOT NULL,
-  message TEXT,
-  is_read TINYINT(1) NOT NULL DEFAULT 0,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS audit_logs (

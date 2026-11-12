@@ -51,7 +51,7 @@ The installation workflows include:
 
 - **Purchases** captures purchase orders, suppliers, totals, remarks, and status updates.
 - **Sales** captures customer transactions, sale types, package types, totals, and status visibility.
-- **Requisitions** captures internal requests and supports approval/decision workflows.
+- **Requisitions** captures requestor contact and department, location, request and required dates, described items and quantities, and supports approval plus optional dispatcher/receiver sign-off.
 - Relevant status changes create notifications for affected users or teams.
 
 ## Accounting

@@ -38,7 +38,7 @@ The application uses a small MVC structure built with plain PHP classes and PDO.
 - **Suppliers** – procurement partner records.
 - **Purchases** – purchase-order capture and status updates with supplier workflows.
 - **Sales** – sales capture and status visibility.
-- **Requisitions** – installation and other-item requests with quantities, reason, amount, and requestor/approver digital signatures.
+- **Requisitions** – installation and other-item requests with requestor email, department, location, request and required dates, item descriptions and quantities, reason, amount, requestor/approver signatures, and optional dispatcher/receiver sign-off.
 - **Users** – staff accounts, roles, departments, and account status management.
 - **Settings** – application administration and configuration access.
 

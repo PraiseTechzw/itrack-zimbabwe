@@ -9,3 +9,4 @@ Apply `20261019_password_reset_tokens.sql` to enable secure, expiring password-r
 Apply `20261022_installations_inventory_invoices.sql` before deploying the stock-backed installation and installation invoice flows to an existing MySQL database.
 Apply `20261022_merge_lines_into_sim_cards.sql` to group mobile lines with SIM card inventory. Existing Econet and NetOne products keep their types and quantities.
 Apply `20261111_installation_deinstallation_requisitions.sql` before deploying the client/staff installation assignments, separate device and camera SIM lines, deinstallation records, or expanded requisition workflow to an existing MySQL database.
+Apply `20261112_requisition_form_fields.sql` before deploying the additional stock requisition form fields (requestor email, location, required date, and dispatch/receipt sign-off) to an existing MySQL database.

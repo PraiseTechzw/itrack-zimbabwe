@@ -67,15 +67,31 @@ class RequisitionController extends Controller
 
         $type = (string)($_POST['request_type'] ?? '');
         $requestedDate = trim((string)($_POST['requested_date'] ?? ''));
+        $requiredDate = trim((string)($_POST['required_date'] ?? ''));
+        $location = $this->sanitize((string)($_POST['location'] ?? ''));
         $reason = $this->sanitize((string)($_POST['purpose'] ?? ''));
         $amount = $_POST['total_amount'] ?? null;
         $requesterSignature = $this->signature($_POST, 'requester_signature');
+        $dispatcherSignatureValue = trim((string)($_POST['dispatcher_signature'] ?? ''));
+        $dispatcherSignature = $dispatcherSignatureValue === '' ? '' : $this->signature($_POST, 'dispatcher_signature');
+        $receiverSignatureValue = trim((string)($_POST['receiver_signature'] ?? ''));
+        $receiverSignature = $receiverSignatureValue === '' ? '' : $this->signature($_POST, 'receiver_signature');
+        $dispatcherName = $this->sanitize((string)($_POST['dispatcher_name'] ?? ''));
+        $receiverName = $this->sanitize((string)($_POST['receiver_name'] ?? ''));
+        $receiverDate = trim((string)($_POST['receiver_date'] ?? ''));
+        $requesterEmail = trim((string)($_SESSION['user']['email'] ?? ''));
         $error = null;
         if (!in_array($type, ['installation', 'other'], true)) $error = 'Choose a requisition type.';
         elseif (!$this->validDate($requestedDate)) $error = 'Enter a valid request date.';
+        elseif (!$this->validDate($requiredDate)) $error = 'Enter a valid date required.';
+        elseif ($location === '' || strlen($location) > 150) $error = 'Enter a location of 1 to 150 characters.';
         elseif ($reason === '') $error = 'Enter the reason for this request.';
         elseif (!is_numeric($amount) || (float)$amount < 0) $error = 'Enter a valid non-negative amount.';
         elseif ($requesterSignature === null) $error = 'Add the requestor digital signature before submitting.';
+        elseif (!filter_var($requesterEmail, FILTER_VALIDATE_EMAIL)) $error = 'The logged-in account does not have a valid email address.';
+        elseif ($dispatcherSignature === null || $receiverSignature === null) $error = 'Check the dispatcher and receiver signatures.';
+        elseif (strlen($dispatcherName) > 150 || strlen($receiverName) > 150) $error = 'Dispatcher and receiver names must be at most 150 characters.';
+        elseif ($receiverDate !== '' && !$this->validDate($receiverDate)) $error = 'Enter a valid receiver date.';
 
         $installationItems = null;
         $items = null;
@@ -86,17 +102,22 @@ class RequisitionController extends Controller
             $clients = (new Client())->active();
             $clientIds = array_map(static fn(array $client): int => (int)$client['id'], $clients);
             $installationItems = [
-                'device' => ['type' => trim((string)($_POST['installation_device_type'] ?? '')), 'quantity' => (int)($_POST['installation_device_quantity'] ?? 0)],
-                'camera' => ['type' => trim((string)($_POST['installation_camera_type'] ?? '')), 'quantity' => (int)($_POST['installation_camera_quantity'] ?? 0)],
-                'fls' => ['type' => trim((string)($_POST['installation_fls_type'] ?? '')), 'quantity' => (int)($_POST['installation_fls_quantity'] ?? 0)],
-                'sim_line' => ['type' => trim((string)($_POST['installation_sim_line_type'] ?? '')), 'quantity' => (int)($_POST['installation_sim_line_quantity'] ?? 0)],
+                'device' => ['type' => trim((string)($_POST['installation_device_type'] ?? '')), 'description' => $this->sanitize((string)($_POST['installation_device_description'] ?? '')), 'quantity' => (int)($_POST['installation_device_quantity'] ?? 0)],
+                'camera' => ['type' => trim((string)($_POST['installation_camera_type'] ?? '')), 'description' => $this->sanitize((string)($_POST['installation_camera_description'] ?? '')), 'quantity' => (int)($_POST['installation_camera_quantity'] ?? 0)],
+                'fls' => ['type' => trim((string)($_POST['installation_fls_type'] ?? '')), 'description' => $this->sanitize((string)($_POST['installation_fls_description'] ?? '')), 'quantity' => (int)($_POST['installation_fls_quantity'] ?? 0)],
+                'sim_line' => ['type' => trim((string)($_POST['installation_sim_line_type'] ?? '')), 'description' => $this->sanitize((string)($_POST['installation_sim_line_description'] ?? '')), 'quantity' => (int)($_POST['installation_sim_line_quantity'] ?? 0)],
             ];
             if (!in_array($clientId, $clientIds, true)) $error = 'Choose an active client for the installation request.';
             elseif (!in_array($installationItems['device']['type'], Product::deviceTypes(), true) || $installationItems['device']['quantity'] < 1) $error = 'Choose a device type and enter a positive device quantity.';
+            elseif (strlen($installationItems['device']['description']) > 500) $error = 'Item descriptions must be at most 500 characters.';
             else {
                 foreach (['camera' => 'Cameras', 'fls' => 'FLS', 'sim_line' => 'Sim cards'] as $key => $category) {
                     $itemType = $installationItems[$key]['type'];
                     $quantity = $installationItems[$key]['quantity'];
+                    if (strlen($installationItems[$key]['description']) > 500) {
+                        $error = 'Item descriptions must be at most 500 characters.';
+                        break;
+                    }
                     if (($itemType === '' && $quantity !== 0) || ($itemType !== '' && (!in_array($itemType, Product::itemTypes()[$category], true) || $quantity < 1))) {
                         $error = 'For cameras, FLS, and SIM lines, choose an item type and enter a positive quantity, or leave both empty.';
                         break;
@@ -119,7 +140,12 @@ class RequisitionController extends Controller
                         $error = 'Each requested item needs a name and a positive whole-number quantity.';
                         break;
                     }
-                    $items[] = ['name' => $name, 'quantity' => $quantity];
+                    $description = $this->sanitize((string)($item['description'] ?? ''));
+                    if (strlen($description) > 500) {
+                        $error = 'Item descriptions must be at most 500 characters.';
+                        break;
+                    }
+                    $items[] = ['name' => $name, 'description' => $description, 'quantity' => $quantity];
                 }
                 if ($error === null && count($items) < 1) $error = 'Add at least one requested item.';
                 if ($error === null && count($items) > 50) $error = 'A requisition can contain at most 50 items.';
@@ -144,6 +170,14 @@ class RequisitionController extends Controller
             'requester_signature' => $requesterSignature,
             'installation_items' => $installationItems,
             'items' => $items,
+            'requester_email' => $requesterEmail,
+            'location' => $location,
+            'required_date' => $requiredDate,
+            'dispatcher_name' => $dispatcherName,
+            'dispatcher_signature' => $dispatcherSignature,
+            'receiver_name' => $receiverName,
+            'receiver_signature' => $receiverSignature,
+            'receiver_date' => $receiverDate,
         ]);
         $this->redirect('/index.php?controller=requisition');
     }

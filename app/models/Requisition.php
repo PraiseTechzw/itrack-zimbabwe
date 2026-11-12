@@ -14,7 +14,7 @@ class Requisition extends ModuleModel {
     public function create(array $data): string
     {
         $this->execute(
-            'INSERT INTO requisitions (requested_by, department, purpose, requested_date, status, total_amount, remarks, request_type, client_id, beneficiary_name, requester_signature, installation_items, items_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO requisitions (requested_by, department, purpose, requested_date, status, total_amount, remarks, request_type, client_id, beneficiary_name, requester_signature, installation_items, items_json, requester_email, location, required_date, dispatcher_name, dispatcher_signature, receiver_name, receiver_signature, receiver_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 (int)($data['requested_by'] ?? 0) ?: null,
                 trim((string)($data['department'] ?? 'General')),
@@ -29,6 +29,14 @@ class Requisition extends ModuleModel {
                 (string)($data['requester_signature'] ?? ''),
                 isset($data['installation_items']) ? json_encode($data['installation_items'], JSON_THROW_ON_ERROR) : null,
                 isset($data['items']) ? json_encode($data['items'], JSON_THROW_ON_ERROR) : null,
+                trim((string)($data['requester_email'] ?? '')),
+                trim((string)($data['location'] ?? '')),
+                ($data['required_date'] ?? '') ?: null,
+                trim((string)($data['dispatcher_name'] ?? '')),
+                (string)($data['dispatcher_signature'] ?? ''),
+                trim((string)($data['receiver_name'] ?? '')),
+                (string)($data['receiver_signature'] ?? ''),
+                ($data['receiver_date'] ?? '') ?: null,
             ]
         );
         return $this->lastInsertId();

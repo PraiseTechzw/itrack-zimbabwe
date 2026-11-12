@@ -561,6 +561,14 @@ class Database
             'approver_signature' => 'TEXT',
             'installation_items' => 'TEXT',
             'items_json' => 'TEXT',
+            'requester_email' => 'TEXT',
+            'location' => 'TEXT',
+            'required_date' => 'TEXT',
+            'dispatcher_name' => 'TEXT',
+            'dispatcher_signature' => 'TEXT',
+            'receiver_name' => 'TEXT',
+            'receiver_signature' => 'TEXT',
+            'receiver_date' => 'TEXT',
         ] as $name => $definition) {
             if (!in_array($name, $existing, true)) $pdo->exec("ALTER TABLE requisitions ADD COLUMN {$name} {$definition}");
         }

@@ -86,7 +86,7 @@ class RequisitionController extends Controller
         elseif (!$this->validDate($requiredDate)) $error = 'Enter a valid date required.';
         elseif ($location === '' || strlen($location) > 150) $error = 'Enter a location of 1 to 150 characters.';
         elseif ($reason === '') $error = 'Enter the reason for this request.';
-        elseif (!is_numeric($amount) || (float)$amount < 0) $error = 'Enter a valid non-negative amount.';
+        elseif ($type === 'other' && (!is_numeric($amount) || (float)$amount < 0)) $error = 'Enter a valid non-negative amount.';
         elseif ($requesterSignature === null) $error = 'Add the requestor digital signature before submitting.';
         elseif (!filter_var($requesterEmail, FILTER_VALIDATE_EMAIL)) $error = 'The logged-in account does not have a valid email address.';
         elseif ($dispatcherSignature === null || $receiverSignature === null) $error = 'Check the dispatcher and receiver signatures.';
@@ -162,7 +162,7 @@ class RequisitionController extends Controller
             'department' => $this->sanitize((string)($_SESSION['user']['department'] ?? 'General')),
             'purpose' => $reason,
             'requested_date' => $requestedDate,
-            'total_amount' => (float)$amount,
+            'total_amount' => $type === 'other' ? (float)$amount : 0,
             'remarks' => $reason,
             'request_type' => $type,
             'client_id' => $clientId,

@@ -4,7 +4,7 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.1] - 2026-11-18
 
 ### Added
 
@@ -28,6 +28,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Environment values for settings such as `MAIL_FROM` and `APP_PUBLIC_URL` were ignored because built-in defaults always won.
 - Resend sender validation now accepts display names (`Name <email>`) while rejecting header injection.
 - The Settings form shows the effective sender address, so a domain configured via `.env` no longer blocks saving alert recipients.
+- Sender addresses stay valid in the Settings form even when a display name is configured; the display name is applied only to outgoing mail.
+- Low-stock alert emails now honour a Public URL saved on the Settings screen, matching password-reset links.
 
 ## [1.1.0] – 2026-11-18
 

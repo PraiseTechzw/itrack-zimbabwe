@@ -40,7 +40,7 @@ class LowStockAlerter
 
         $config = require dirname(__DIR__) . '/config/app.php';
         $appName = setting_string('app_name', (string) ($config['app_name'] ?? 'iTrack Zimbabwe'));
-        $publicUrl = rtrim((string) ($config['public_url'] ?? ''), '/');
+        $publicUrl = rtrim(setting_string('public_url', (string) ($config['public_url'] ?? '')), '/');
         $inventoryUrl = $publicUrl !== '' ? $publicUrl . '/index.php?controller=inventory' : '';
         $template = EmailTemplate::lowStock($appName, $items, $inventoryUrl);
 

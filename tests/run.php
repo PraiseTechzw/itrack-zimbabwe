@@ -169,6 +169,7 @@ $namedPayload = ResendMailer::payload('ops@example.com', 'iTrack Zimbabwe <no-re
 check('resend payload accepts a display name', is_array($namedPayload) && $namedPayload['from'] === 'iTrack Zimbabwe <no-reply@example.com>');
 require_once dirname(__DIR__) . '/app/helpers/mail.php';
 check('resolved sender is a valid Resend address', ResendMailer::normalizeFrom(mailSender()) === mailSender());
+check('settings sender is a bare valid email', filter_var(mailSenderEmail(), FILTER_VALIDATE_EMAIL) !== false && !str_contains(mailSenderEmail(), '<'));
 
 // Email templates render branded HTML plus a plain-text alternative.
 require_once dirname(__DIR__) . '/app/services/EmailTemplate.php';

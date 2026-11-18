@@ -334,7 +334,7 @@ app/
   helpers/       Authentication, permissions, validation, formatting, uploads, and responses
   middleware/    Authentication, administrator, and permission middleware
   models/        Database models and domain operations
-  services/      Report formatting, PDF/XLSX generation, and optional AI insights
+  services/      Report formatting, PDF/XLSX generation, optional AI insights, Resend delivery, and branded email templates
   views/         Server-rendered PHP views
 public/          Web document root and public entry points
 api/             API entry points for direct Apache deployments

@@ -25,7 +25,13 @@ if (!function_exists('mailSenderEmail')) {
         if ($address === false) {
             $address = ResendMailer::normalizeFrom($domain !== '' ? 'no-reply@' . $domain : 'onboarding@resend.dev');
         }
-        return $address === false ? 'onboarding@resend.dev' : $address;
+        if ($address === false) return 'onboarding@resend.dev';
+
+        // The Settings field validates a bare address; display names are added by mailSender().
+        if (str_contains($address, '<') && preg_match('/<([^<>]+)>$/', $address, $matches) === 1) {
+            return $matches[1];
+        }
+        return $address;
     }
 }
 

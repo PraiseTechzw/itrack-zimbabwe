@@ -1,14 +1,19 @@
 <?php
 
+require_once __DIR__ . '/settings.php';
+require_once dirname(__DIR__) . '/services/ResendMailer.php';
+
 if (!function_exists('sendMail')) {
+    /**
+     * Send an email through Resend. All outgoing mail (password resets and
+     * low-stock alerts) uses this single entry point.
+     */
     function sendMail(string $to, string $subject, string $message): bool
     {
         $config = require dirname(__DIR__) . '/config/app.php';
-        $from = trim((string) $config['mail_from']);
-        if (!filter_var($to, FILTER_VALIDATE_EMAIL) || !filter_var($from, FILTER_VALIDATE_EMAIL)) return false;
-        if (preg_match('/[\r\n]/', $subject) || preg_match('/[\r\n]/', $from)) return false;
+        $from = setting_string('mail_from', (string) $config['mail_from']);
+        $apiKey = trim((string) ($config['resend_api_key'] ?? ''));
 
-        $headers = "From: {$from}\r\n" . "Content-Type: text/plain; charset=UTF-8\r\n";
-        return @mail($to, $subject, $message, $headers);
+        return ResendMailer::send($to, $subject, $message, $from, $apiKey);
     }
 }

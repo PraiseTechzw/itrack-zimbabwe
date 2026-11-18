@@ -9,7 +9,10 @@ return [
     'db_sqlite_path' => (string) env('DB_SQLITE_PATH', dirname(__DIR__, 2) . '/storage/itrack.sqlite'),
     'allow_registration' => filter_var(env('APP_ALLOW_REGISTRATION', !in_array(strtolower((string) env('APP_ENV', 'development')), ['prod', 'production'], true)), FILTER_VALIDATE_BOOLEAN),
     'session_secure' => filter_var(env('APP_SESSION_SECURE', false), FILTER_VALIDATE_BOOLEAN),
-    'mail_from' => env('MAIL_FROM', 'no-reply@localhost'),
+    // Resend: set RESEND_API_KEY in .env (or the server environment).
+    'resend_api_key' => (string) env('RESEND_API_KEY', ''),
+    // Use a verified domain in production; onboarding@resend.dev is Resend's test sender.
+    'mail_from' => env('MAIL_FROM', 'onboarding@resend.dev'),
     'public_url' => rtrim((string) env('APP_PUBLIC_URL', ''), '/'),
     'debug' => filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN),
     'base_url' => env('APP_BASE_URL', '/itrack-zimbabwe'),

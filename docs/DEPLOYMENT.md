@@ -3,10 +3,11 @@
 ## Production checklist
 
 - Point the web-server document root at [`public/`](../public), not the repository root.
-- Run PHP 8.1+ with `pdo_mysql` enabled for MySQL deployments.
+- Run PHP 8.1+ with `pdo_mysql` (for MySQL) and `curl` (for Resend email) enabled.
 - Create and secure a production `.env` outside version control.
 - Set `APP_ENV=production`, `APP_DEBUG=false`, and `APP_SESSION_SECURE=true` behind HTTPS.
 - Configure `APP_BASE_URL` and `APP_PUBLIC_URL` for the deployed host.
+- Set `RESEND_API_KEY` and a `MAIL_FROM` address on a domain verified in Resend; all outgoing email uses Resend.
 - Set `DB_DRIVER=mysql` and valid `DB_*` credentials.
 - Import the schema, seed data, and required migrations.
 - Make `storage/` and `uploads/` writable by the PHP process, but not publicly browsable.

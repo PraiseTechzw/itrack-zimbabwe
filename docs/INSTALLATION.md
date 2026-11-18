@@ -35,7 +35,11 @@ APP_SESSION_SECURE=false
 DB_DRIVER=sqlite
 DB_SQLITE_PATH=/absolute/path/to/storage/itrack.sqlite
 UPLOAD_DIR=/absolute/path/to/uploads
+RESEND_API_KEY=
+MAIL_FROM=onboarding@resend.dev
 ```
+
+All outgoing email (password resets and low-stock alerts) is delivered through Resend. Set `RESEND_API_KEY` and use a `MAIL_FROM` address on a domain verified in Resend; `onboarding@resend.dev` is Resend's test sender and can only send to your own account address. The PHP `curl` extension must be enabled.
 
 For production, set `APP_ENV=production`, configure `DB_DRIVER=mysql` and the `DB_*` values, set `APP_SESSION_SECURE=true` behind HTTPS, and keep `APP_ALLOW_REGISTRATION=false` unless open registration is intentional.
 
@@ -72,4 +76,4 @@ The web-server document root must be [`public/`](../public), not the repository 
 - **Uploads or exports fail:** check write permission on `uploads/` and `storage/`.
 - **Links point to the wrong path:** set `APP_BASE_URL` to the deployment mount path.
 - **Registration is unavailable:** confirm `APP_ALLOW_REGISTRATION=true` and that the environment is not production-only.
-- **Password reset is not delivered:** configure `APP_PUBLIC_URL`, `MAIL_FROM`, and the server mail transport.
+- **Password reset is not delivered:** configure `APP_PUBLIC_URL`, `RESEND_API_KEY`, and a verified `MAIL_FROM` address; confirm the PHP `curl` extension is enabled and check the application log for the Resend error.

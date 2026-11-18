@@ -14,7 +14,7 @@ This guide maps the current iTrack Zimbabwe application to the workflows availab
 
 ## Dashboard
 
-The dashboard provides an operational overview with user count, tracked products, client accounts, GPS/installation records, low-stock alerts, a **Cost total** (stock valued at cost), quick actions, and a role-specific module launcher.
+The dashboard provides an operational overview with user count, tracked products, client accounts, GPS/installation records, low-stock alerts, a **Cost total** (stock valued at cost), quick actions, and a role-specific module launcher. When items reach their reorder level, a low-stock banner lists the affected items with links to Inventory and Settings.
 
 ## Inventory
 
@@ -26,6 +26,8 @@ The inventory workflows include:
 - Bulk stock entry for several rows at once, entered manually.
 - Download of the current inventory register as an Excel workbook, including VAT and the quantity currently installed per item.
 - Serialized-item validation for FLS units, cameras, hard drives and SIM lines.
+- Per-item reorder levels (editable in single and bulk screens) with a configurable global default from Settings.
+- Low-stock alert banner listing items at or below their effective reorder level.
 - A returned-equipment panel listing items restored to stock by deinstallations.
 - Stock movement and quantity tracking.
 - API listing through the inventory endpoint.
@@ -41,6 +43,20 @@ The installation workflows include:
 - Stock-backed equipment selection and quantity reduction.
 - Installation and GPS device listing.
 - Deinstallation by picking a specific installed tracker or camera; the chassis number is optional and all linked equipment is returned to stock.
+
+## Settings and alerts
+
+The Settings page is available to Administrators and Directors and stores values in `app_settings`, overriding environment defaults:
+
+- **General** – application name, tagline, public URL, registration toggle and debug logging.
+- **Company** – company name, address, phone, email, TIN, VAT number and bank details used on tax invoices.
+- **Inventory & low-stock alerts** – master alert switch, default reorder level, and where banners appear (Dashboard, Inventory).
+- **Notifications & email** – sender address, recipient list, email alert toggle, throttle interval and last-sent time.
+- **Currency & VAT** – currency code/symbol and the default VAT rate for new inventory items.
+- **Security & access** – minimum password length, session lifetime and failed-login limit.
+- **System information** – environment, database driver, PHP version and shortcuts to permissions, reports and documentation.
+
+An item is low when its stock is at or below its own reorder level, or the global default when no item-specific level is set. Optional email summaries are throttled by the configured interval; administrators can send one immediately from the Settings page.
 
 ## Parties and people
 

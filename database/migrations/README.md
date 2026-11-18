@@ -10,3 +10,5 @@ Apply `20261022_installations_inventory_invoices.sql` before deploying the stock
 Apply `20261022_merge_lines_into_sim_cards.sql` to group mobile lines with SIM card inventory. Existing Econet and NetOne products keep their types and quantities.
 Apply `20261111_installation_deinstallation_requisitions.sql` before deploying the client/staff installation assignments, separate device and camera SIM lines, deinstallation records, or expanded requisition workflow to an existing MySQL database.
 Apply `20261112_requisition_form_fields.sql` before deploying the additional stock requisition form fields (requestor email, location, required date, and dispatch/receipt sign-off) to an existing MySQL database.
+Apply `20261118_installation_hardware_pricing_returns.sql` for v1.1.0 camera hard drives, VAT rates and deinstallation return details.
+Apply `20261118_app_settings_low_stock_alerts.sql` before deploying the Settings page and low-stock alert thresholds. Existing rows are untouched; defaults are supplied in code.

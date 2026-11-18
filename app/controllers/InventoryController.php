@@ -3,6 +3,7 @@
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/Product.php';
 require_once dirname(__DIR__) . '/models/GPSDevice.php';
+require_once dirname(__DIR__) . '/helpers/settings.php';
 require_once dirname(__DIR__) . '/services/XlsxReport.php';
 
 class InventoryController extends Controller
@@ -33,15 +34,24 @@ class InventoryController extends Controller
         } catch (InvalidArgumentException $exception) {
             return $exception->getMessage();
         }
+        if (isset($data['reorder_level']) && $data['reorder_level'] !== ''
+            && (!is_numeric($data['reorder_level']) || (int) $data['reorder_level'] < 0)) {
+            return 'Reorder level must be zero or a positive whole number.';
+        }
         return null;
     }
 
     public function index(): void
     {
         $this->requireModuleAccess('inventory', ['Administrator','Procurement Officer','Store Officer','Staff']);
+        $defaultReorderLevel = setting_int('default_reorder_level', 5);
         $this->view('inventory/index', [
             'products' => $this->productModel->all(),
             'deinstallations' => (new GPSDevice())->deinstallations(),
+            'lowStockItems' => setting_bool('low_stock_alerts_enabled') && setting_bool('low_stock_show_inventory')
+                ? $this->productModel->lowStockItems($defaultReorderLevel, 10)
+                : [],
+            'defaultReorderLevel' => $defaultReorderLevel,
         ]);
     }
 
@@ -100,6 +110,7 @@ class InventoryController extends Controller
             }
             $data = $_POST;
             $data['quantity'] = 1;
+            if (($data['reorder_level'] ?? '') === '') $data['reorder_level'] = setting_int('default_reorder_level', 5);
             $this->productModel->create($data);
             $this->redirect('/index.php?controller=inventory');
         }
@@ -150,10 +161,12 @@ class InventoryController extends Controller
                     || Product::identifierError($category, $identifier) !== null
                     || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier)))
                     || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0)
-                    || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0 || $vatRate < 0) $valid = false;
+                    || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0 || $vatRate < 0
+                    || (($row['reorder_level'] ?? '') !== '' && (!is_numeric($row['reorder_level']) || (int)$row['reorder_level'] < 0))) $valid = false;
                 if ($identifier !== '') $identifiers[$identifier] = true;
                 $row['unit'] = trim((string)($row['unit'] ?? 'pcs')) ?: 'pcs';
-                $row['vat_rate'] = $vatRate >= 0 ? $vatRate : 15.0;
+                $row['vat_rate'] = $vatRate >= 0 ? $vatRate : setting_float('default_vat_rate', 15);
+                if (($row['reorder_level'] ?? '') === '') $row['reorder_level'] = setting_int('default_reorder_level', 5);
             }
             unset($row);
             if (!$valid) {

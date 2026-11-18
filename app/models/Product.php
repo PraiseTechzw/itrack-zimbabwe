@@ -82,7 +82,7 @@ class Product extends Model
         $identifier = trim((string) ($data['identifier'] ?? ''));
         $quantity = max(1, (int) ($data['quantity'] ?? 1));
         $sku = $identifier !== '' ? $identifier : strtoupper(substr($category, 0, 3)) . '-' . strtoupper(bin2hex(random_bytes(5)));
-        $sql = 'INSERT INTO products (name, sku, imei, sim_number, device_type, item_category, item_type, category_id, unit, cost_price, selling_price, vat_rate, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :imei, NULL, :device_type, :item_category, :item_type, :category_id, :unit, :cost_price, :selling_price, :vat_rate, :quantity, 0, :status, CURRENT_TIMESTAMP)';
+        $sql = 'INSERT INTO products (name, sku, imei, sim_number, device_type, item_category, item_type, category_id, unit, cost_price, selling_price, vat_rate, opening_stock, reorder_level, status, created_at) VALUES (:name, :sku, :imei, NULL, :device_type, :item_category, :item_type, :category_id, :unit, :cost_price, :selling_price, :vat_rate, :quantity, :reorder_level, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':name' => $type,
             ':sku' => $sku,
@@ -96,6 +96,7 @@ class Product extends Model
             ':selling_price' => (float) ($data['selling_price'] ?? 0),
             ':vat_rate' => self::vatRate($data['vat_rate'] ?? null),
             ':quantity' => $quantity,
+            ':reorder_level' => max(0, (int) ($data['reorder_level'] ?? 0)),
             ':status' => trim((string) ($data['status'] ?? 'active')),
         ]);
         return $this->lastInsertId();
@@ -120,7 +121,7 @@ class Product extends Model
         $category = trim((string) ($data['item_category'] ?? 'Tracker'));
         $type = trim((string) ($data['item_type'] ?? ''));
         $identifier = trim((string) ($data['identifier'] ?? ''));
-        $sql = 'UPDATE products SET name = :name, sku = CASE WHEN :sku_check <> \'\' THEN :sku ELSE sku END, imei = :imei, sim_number = NULL, device_type = :device_type, item_category = :item_category, item_type = :item_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, vat_rate = :vat_rate, opening_stock = :quantity, status = :status WHERE id = :id';
+        $sql = 'UPDATE products SET name = :name, sku = CASE WHEN :sku_check <> \'\' THEN :sku ELSE sku END, imei = :imei, sim_number = NULL, device_type = :device_type, item_category = :item_category, item_type = :item_type, category_id = :category_id, unit = :unit, cost_price = :cost_price, selling_price = :selling_price, vat_rate = :vat_rate, opening_stock = :quantity, reorder_level = :reorder_level, status = :status WHERE id = :id';
         $this->execute($sql, [
             ':name' => $type, ':sku_check' => $identifier, ':sku' => $identifier, ':imei' => $identifier !== '' ? $identifier : null,
             ':device_type' => $type, ':item_category' => $category, ':item_type' => $type,
@@ -130,6 +131,7 @@ class Product extends Model
             ':selling_price' => (float) ($data['selling_price'] ?? 0),
             ':vat_rate' => self::vatRate($data['vat_rate'] ?? null),
             ':quantity' => max(0, (int) ($data['quantity'] ?? 0)),
+            ':reorder_level' => max(0, (int) ($data['reorder_level'] ?? 0)),
             ':status' => trim((string) ($data['status'] ?? 'active')),
             ':id' => $id,
         ]);
@@ -166,9 +168,29 @@ class Product extends Model
         return (int) ($this->fetchOne('SELECT COUNT(*) AS total FROM products')['total'] ?? 0);
     }
 
-    public function lowStockCount(): int
+    /**
+     * An item's own reorder level wins when set; otherwise the configured
+     * default applies. Only active items are considered.
+     */
+    public function lowStockItems(int $defaultThreshold = 0, int $limit = 20): array
     {
-        return (int) ($this->fetchOne('SELECT COUNT(*) AS total FROM products WHERE opening_stock <= reorder_level')['total'] ?? 0);
+        return $this->fetchAll(
+            'SELECT id, name, sku, imei, item_category, item_type, opening_stock,
+                    CASE WHEN reorder_level > 0 THEN reorder_level ELSE ? END AS reorder_threshold,
+                    CASE WHEN reorder_level > 0 THEN 1 ELSE 0 END AS has_own_reorder_level
+             FROM products
+             WHERE status = \'active\' AND opening_stock <= CASE WHEN reorder_level > 0 THEN reorder_level ELSE ? END
+             ORDER BY opening_stock ASC, name ASC LIMIT ' . max(1, $limit),
+            [$defaultThreshold, $defaultThreshold]
+        );
+    }
+
+    public function lowStockCount(int $defaultThreshold = 0): int
+    {
+        return (int) ($this->fetchOne(
+            'SELECT COUNT(*) AS total FROM products WHERE status = \'active\' AND opening_stock <= CASE WHEN reorder_level > 0 THEN reorder_level ELSE ? END',
+            [$defaultThreshold]
+        )['total'] ?? 0);
     }
 
     public function inventoryValue(): float

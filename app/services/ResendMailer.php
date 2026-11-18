@@ -18,11 +18,30 @@ class ResendMailer
         return self::$lastError;
     }
 
+    /** Normalize a sender as "email@domain" or "Display Name <email@domain>". */
+    public static function normalizeFrom(string $from): string|false
+    {
+        $from = trim($from);
+        if ($from === '' || preg_match('/[\r\n]/', $from)) return false;
+
+        $name = '';
+        $email = $from;
+        if (preg_match('/^(.*?)\s*<([^<>]+)>$/', $from, $matches) === 1) {
+            $name = trim($matches[1], " \t\"'");
+            $email = trim($matches[2]);
+            if ($name === '' || preg_match('/[\r\n<>]/', $name)) return false;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return false;
+
+        return $name !== '' ? $name . ' <' . $email . '>' : $email;
+    }
+
     /** Build and validate the Resend payload without performing any I/O. */
     public static function payload(string $to, string $from, string $subject, string $message): array|false
     {
-        if (!filter_var($to, FILTER_VALIDATE_EMAIL) || !filter_var($from, FILTER_VALIDATE_EMAIL)) return false;
-        if (preg_match('/[\r\n]/', $to) || preg_match('/[\r\n]/', $from) || preg_match('/[\r\n]/', $subject)) return false;
+        $from = self::normalizeFrom($from);
+        if ($from === false || !filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
+        if (preg_match('/[\r\n]/', $to) || preg_match('/[\r\n]/', $subject)) return false;
 
         $subject = trim($subject);
         if ($subject === '') return false;

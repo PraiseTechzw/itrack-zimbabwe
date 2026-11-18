@@ -161,6 +161,14 @@ check('resend payload rejects invalid recipient', ResendMailer::payload('not-an-
 check('resend payload rejects header injection', ResendMailer::payload('ops@example.com', "no-reply@example.com\nBcc: evil@example.com", 'Subject', 'Body') === false);
 check('resend send fails without an API key', ResendMailer::send('ops@example.com', 'Subject', 'Body', 'no-reply@example.com', '') === false);
 check('resend failure exposes a useful hint', str_contains(ResendMailer::lastError(), 'RESEND_API_KEY'));
+check('resend sender accepts a full address', ResendMailer::normalizeFrom('no-reply@example.com') === 'no-reply@example.com');
+check('resend sender accepts a display name', ResendMailer::normalizeFrom('iTrack Zimbabwe <no-reply@example.com>') === 'iTrack Zimbabwe <no-reply@example.com>');
+check('resend sender rejects a bare domain', ResendMailer::normalizeFrom('example.com') === false);
+check('resend sender rejects header injection', ResendMailer::normalizeFrom("Name <no-reply@example.com\r\nBcc: a@b.com>") === false);
+$namedPayload = ResendMailer::payload('ops@example.com', 'iTrack Zimbabwe <no-reply@example.com>', 'Subject', 'Body');
+check('resend payload accepts a display name', is_array($namedPayload) && $namedPayload['from'] === 'iTrack Zimbabwe <no-reply@example.com>');
+require_once dirname(__DIR__) . '/app/helpers/mail.php';
+check('resolved sender is a valid Resend address', ResendMailer::normalizeFrom(mailSender()) === mailSender());
 
 @unlink($database);
 echo $failures === 0 ? "\nAll checks passed.\n" : "\n{$failures} check(s) failed.\n";

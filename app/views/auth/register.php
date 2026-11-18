@@ -24,7 +24,11 @@
         </div>
         <div class="auth-field">
             <label for="register-password">Password</label>
-            <input id="register-password" class="form-control" type="password" name="password" placeholder="At least 12 characters" minlength="12" autocomplete="new-password" required>
+            <input id="register-password" class="form-control" type="password" name="password" placeholder="At least <?= setting_int('password_min_length', 12) ?> characters" minlength="<?= setting_int('password_min_length', 12) ?>" autocomplete="new-password" required>
+        </div>
+        <div class="auth-field">
+            <label for="register-confirmation">Confirm password</label>
+            <input id="register-confirmation" class="form-control" type="password" name="password_confirmation" placeholder="Repeat your password" autocomplete="new-password" required>
         </div>
         <button class="btn btn-primary w-100" type="submit">Create account <i class="fa-solid fa-arrow-right"></i></button>
     </form>

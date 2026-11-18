@@ -50,7 +50,14 @@ class AuthController extends Controller
             }
         }
 
-        $this->view('auth/login', ['title' => 'Login', 'error' => $error, 'registrationAllowed' => setting_bool('allow_registration', !empty($config['allow_registration']))]);
+        $notice = trim((string) ($_SESSION['registration_success'] ?? ''));
+        unset($_SESSION['registration_success']);
+        $this->view('auth/login', [
+            'title' => 'Login',
+            'error' => $error,
+            'notice' => $notice,
+            'registrationAllowed' => setting_bool('allow_registration', !empty($config['allow_registration'])),
+        ]);
     }
 
     public function logout(): void
@@ -86,21 +93,34 @@ class AuthController extends Controller
         }
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = $this->sanitize($_POST['name'] ?? '');
+            $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+            $department = $this->sanitize($_POST['department'] ?? 'General');
+            $password = (string) ($_POST['password'] ?? '');
+            $confirmation = (string) ($_POST['password_confirmation'] ?? '');
+            $minimum = setting_int('password_min_length', 12);
             if (!$this->validateCsrf()) {
                 $error = 'Invalid security token.';
-            } elseif (strlen((string) ($_POST['password'] ?? '')) < setting_int('password_min_length', 12)) {
-                $error = 'Password must be at least ' . setting_int('password_min_length', 12) . ' characters.';
-            } elseif ($this->userModel->findByEmail($this->sanitize($_POST['email'] ?? ''))) {
+            } elseif (strlen($name) < 2 || strlen($name) > 150) {
+                $error = 'Enter your full name (2 to 150 characters).';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = 'Enter a valid email address.';
+            } elseif (strlen($password) < $minimum) {
+                $error = 'Password must be at least ' . $minimum . ' characters.';
+            } elseif (!hash_equals($password, $confirmation)) {
+                $error = 'The passwords do not match.';
+            } elseif ($this->userModel->findByEmail($email)) {
                 $error = 'An account with that email already exists.';
             } else {
                 $this->userModel->create([
-                    'name' => $this->sanitize($_POST['name'] ?? ''),
-                    'email' => $this->sanitize($_POST['email'] ?? ''),
-                    'password' => (string) ($_POST['password'] ?? ''),
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $password,
                     'role' => 'Staff',
-                    'department' => $this->sanitize($_POST['department'] ?? 'General'),
+                    'department' => $department !== '' ? $department : 'General',
                     'status' => 'active',
                 ]);
+                $_SESSION['registration_success'] = 'Your staff account is ready. Sign in to start working.';
                 $this->redirect('/login.php');
             }
         }

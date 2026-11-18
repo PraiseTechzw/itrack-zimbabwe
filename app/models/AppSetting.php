@@ -1,6 +1,7 @@
 <?php
 
 require_once dirname(__DIR__) . '/core/Model.php';
+require_once dirname(__DIR__) . '/config/env.php';
 
 /**
  * Persistent application settings. Environment variables remain the bootstrap
@@ -8,6 +9,15 @@ require_once dirname(__DIR__) . '/core/Model.php';
  */
 class AppSetting extends Model
 {
+    /** Registration is on by default for local setups, off in production unless explicitly enabled. */
+    private static function registrationDefault(): bool
+    {
+        $explicit = env('APP_ALLOW_REGISTRATION', null);
+        if ($explicit !== null) return filter_var($explicit, FILTER_VALIDATE_BOOLEAN);
+        $environment = strtolower((string) env('APP_ENV', 'development'));
+        return !in_array($environment, ['prod', 'production'], true);
+    }
+
     /** Settings catalogue. Also drives the Settings screen and validation. */
     public static function definitions(): array
     {
@@ -16,7 +26,7 @@ class AppSetting extends Model
                 'app_name' => ['label' => 'Application name', 'type' => 'text', 'default' => 'iTrack Zimbabwe', 'max' => 100, 'help' => 'Shown in the browser title and sign-in screen.'],
                 'app_tagline' => ['label' => 'Tagline', 'type' => 'text', 'default' => 'Operations platform', 'max' => 120, 'help' => 'Short description under the application name.'],
                 'public_url' => ['label' => 'Public URL', 'type' => 'text', 'default' => '', 'max' => 255, 'help' => 'Absolute base URL used in password-reset emails. Leave blank to use the request host.'],
-                'allow_registration' => ['label' => 'Allow staff registration', 'type' => 'bool', 'default' => false, 'help' => 'Lets visitors create their own account. Keep off in production.'],
+                'allow_registration' => ['label' => 'Allow staff registration', 'type' => 'bool', 'default' => self::registrationDefault(), 'help' => 'Lets staff create their own account. Turn off to hide the sign-up link and block the register page.'],
                 'debug' => ['label' => 'Debug logging', 'type' => 'bool', 'default' => false, 'help' => 'Writes verbose diagnostics to the application log.'],
             ],
             'company' => [
@@ -56,12 +66,32 @@ class AppSetting extends Model
         ];
     }
 
+    /**
+     * Settings with an environment counterpart use the .env value as their
+     * default so configuration works before anything is saved in the database.
+     * Explicitly saved settings in all() still take precedence.
+     */
     public static function defaults(): array
     {
+        $config = require dirname(__DIR__) . '/config/app.php';
+        $envBacked = [
+            'app_name' => 'app_name',
+            'public_url' => 'public_url',
+            'allow_registration' => 'allow_registration',
+            'debug' => 'debug',
+            'mail_from' => 'mail_from',
+            'low_stock_alerts_enabled' => 'low_stock_alerts_enabled',
+            'low_stock_email_enabled' => 'low_stock_email_enabled',
+            'low_stock_email_recipients' => 'low_stock_email_recipients',
+            'low_stock_email_interval_hours' => 'low_stock_email_interval_hours',
+        ];
         $defaults = [];
         foreach (self::definitions() as $fields) {
             foreach ($fields as $key => $definition) {
-                $defaults[$key] = $definition['default'];
+                $configKey = $envBacked[$key] ?? null;
+                $defaults[$key] = $configKey !== null && array_key_exists($configKey, $config)
+                    ? $config[$configKey]
+                    : $definition['default'];
             }
         }
         return $defaults;

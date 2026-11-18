@@ -170,6 +170,22 @@ check('resend payload accepts a display name', is_array($namedPayload) && $named
 require_once dirname(__DIR__) . '/app/helpers/mail.php';
 check('resolved sender is a valid Resend address', ResendMailer::normalizeFrom(mailSender()) === mailSender());
 
+// Email templates render branded HTML plus a plain-text alternative.
+require_once dirname(__DIR__) . '/app/services/EmailTemplate.php';
+$resetTemplate = EmailTemplate::passwordReset('iTrack Zimbabwe', 'http://localhost/index.php?a=1&b=2');
+check('reset template has html and text', isset($resetTemplate['html'], $resetTemplate['text']) && str_contains($resetTemplate['html'], 'Reset password'));
+check('reset template escapes url in html', str_contains($resetTemplate['html'], 'a=1&amp;b=2') && str_contains($resetTemplate['text'], 'a=1&b=2'));
+check('reset template subject includes app name', str_contains($resetTemplate['subject'], 'iTrack Zimbabwe'));
+$lowTemplate = EmailTemplate::lowStock('iTrack Zimbabwe', [
+    ['item_type' => '<script>alert(1)</script>', 'imei' => '123', 'opening_stock' => 2, 'reorder_threshold' => 5],
+], 'http://localhost/index.php?controller=inventory');
+check('low-stock template escapes item names', str_contains($lowTemplate['html'], '&lt;script&gt;') && !str_contains($lowTemplate['html'], '<script>'));
+check('low-stock template lists stock counts', str_contains($lowTemplate['html'], 'In stock') && str_contains($lowTemplate['text'], '2 in stock (reorder at 5)'));
+check('low-stock template has review link', str_contains($lowTemplate['html'], 'Review inventory'));
+$htmlPayload = ResendMailer::payload('ops@example.com', 'no-reply@example.com', 'Subject', 'Text', '<p>HTML</p>');
+check('resend payload includes html when provided', is_array($htmlPayload) && ($htmlPayload['html'] ?? '') === '<p>HTML</p>');
+check('resend payload omits html when absent', is_array($resendPayload) && !array_key_exists('html', $resendPayload));
+
 @unlink($database);
 echo $failures === 0 ? "\nAll checks passed.\n" : "\n{$failures} check(s) failed.\n";
 exit($failures === 0 ? 0 : 1);

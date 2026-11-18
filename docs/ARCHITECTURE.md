@@ -18,7 +18,7 @@
 - [`app/core/Security.php`](../app/core/Security.php) – security-related shared behavior
 - [`app/helpers/`](../app/helpers) – authentication, permissions, validation, formatting, uploads, notifications, mail, and responses
 - [`app/middleware/`](../app/middleware) – authentication, administrator, and permission enforcement
-- [`app/services/`](../app/services) – reports, PDF/XLSX exports, and optional business insights
+- [`app/services/`](../app/services) – reports, PDF/XLSX exports, optional business insights, Resend delivery, and branded email templates
 
 ## Module structure
 

@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/User.php';
 require_once dirname(__DIR__) . '/helpers/mail.php';
 require_once dirname(__DIR__) . '/helpers/settings.php';
+require_once dirname(__DIR__) . '/services/EmailTemplate.php';
 
 class AuthController extends Controller
 {
@@ -141,7 +142,11 @@ class AuthController extends Controller
                     $token = $this->userModel->createPasswordResetToken($email);
                     if ($token !== null) {
                         $resetLink = $resetBaseUrl . '/index.php?controller=auth&action=resetPassword&token=' . urlencode($token);
-                        $sent = sendMail($email, 'Reset your iTrack password', "A password reset was requested for your iTrack account.\n\nUse this link within one hour:\n{$resetLink}\n\nIf you did not request a reset, ignore this message.");
+                        $template = EmailTemplate::passwordReset(
+                            setting_string('app_name', (string) ($config['app_name'] ?? 'iTrack Zimbabwe')),
+                            $resetLink
+                        );
+                        $sent = sendMail($email, $template['subject'], $template['text'], $template['html']);
                         if (!$sent) $this->userModel->removePasswordResetTokensForEmail($email);
                     }
                 } else {

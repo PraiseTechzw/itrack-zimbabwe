@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Low-stock watch panel on the Settings page showing items at or below their effective reorder level.
 - `tests/settings.php` regression suite for settings persistence, threshold precedence and alert gating.
 - `MAIL_FROM_NAME`, `MAIL_DOMAIN` and `LOW_STOCK_*` environment defaults; a bare domain in `MAIL_FROM` is converted to `no-reply@domain`.
+- Branded HTML email templates with plain-text alternatives for password resets and low-stock alerts; Resend payloads now include both `html` and `text`.
 - Working staff self-registration: validated name, email, password and confirmation, with a success notice and immediate access to the Staff role's modules.
 
 ### Changed

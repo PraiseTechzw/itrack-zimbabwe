@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__) . '/helpers/mail.php';
 require_once dirname(__DIR__) . '/helpers/settings.php';
+require_once dirname(__DIR__) . '/services/EmailTemplate.php';
 
 /** Builds and throttles low-stock summary emails. */
 class LowStockAlerter
@@ -37,26 +38,16 @@ class LowStockAlerter
         if ($recipients === []) return ['status' => 'error', 'message' => 'Add at least one valid recipient email address.'];
         if ($items === []) return ['status' => 'skipped', 'message' => 'No items are currently at or below their reorder level.'];
 
-        $appName = setting_string('app_name', 'iTrack Zimbabwe');
-        $lines = [];
-        foreach ($items as $item) {
-            $label = trim((string)($item['item_type'] ?? $item['name'] ?? 'Item'));
-            $serial = trim((string)($item['imei'] ?? ''));
-            $lines[] = sprintf(
-                '- %s%s: %d in stock (reorder at %d)',
-                $label,
-                $serial !== '' ? ' [' . $serial . ']' : '',
-                (int)($item['opening_stock'] ?? 0),
-                (int)($item['reorder_threshold'] ?? 0)
-            );
-        }
-        $subject = $appName . ': low-stock alert (' . count($items) . ' item' . (count($items) === 1 ? '' : 's') . ')';
-        $message = "The following inventory items have reached their reorder level:\n\n"
-            . implode("\n", $lines)
-            . "\n\nPlease review inventory and raise a purchase or requisition as needed.\n";
+        $config = require dirname(__DIR__) . '/config/app.php';
+        $appName = setting_string('app_name', (string) ($config['app_name'] ?? 'iTrack Zimbabwe'));
+        $publicUrl = rtrim((string) ($config['public_url'] ?? ''), '/');
+        $inventoryUrl = $publicUrl !== '' ? $publicUrl . '/index.php?controller=inventory' : '';
+        $template = EmailTemplate::lowStock($appName, $items, $inventoryUrl);
 
         $sent = 0;
-        foreach ($recipients as $email) if (sendMail($email, $subject, $message)) $sent++;
+        foreach ($recipients as $email) {
+            if (sendMail($email, $template['subject'], $template['text'], $template['html'])) $sent++;
+        }
         if ($sent === 0) {
             $hint = trim(ResendMailer::lastError());
             return ['status' => 'error', 'message' => 'Resend could not deliver the alert.' . ($hint !== '' ? ' ' . $hint : '')];

@@ -48,15 +48,16 @@ if (!function_exists('sendMail')) {
      * Send an email through Resend. All outgoing mail (password resets and
      * low-stock alerts) uses this single entry point.
      */
-    function sendMail(string $to, string $subject, string $message): bool
+    function sendMail(string $to, string $subject, string $text, string $html = ''): bool
     {
         $config = require dirname(__DIR__) . '/config/app.php';
         return ResendMailer::send(
             $to,
             $subject,
-            $message,
+            $text,
             mailSender(),
-            trim((string) ($config['resend_api_key'] ?? ''))
+            trim((string) ($config['resend_api_key'] ?? '')),
+            $html
         );
     }
 }

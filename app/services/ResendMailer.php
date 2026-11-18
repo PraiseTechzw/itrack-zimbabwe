@@ -37,7 +37,7 @@ class ResendMailer
     }
 
     /** Build and validate the Resend payload without performing any I/O. */
-    public static function payload(string $to, string $from, string $subject, string $message): array|false
+    public static function payload(string $to, string $from, string $subject, string $text, string $html = ''): array|false
     {
         $from = self::normalizeFrom($from);
         if ($from === false || !filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
@@ -46,16 +46,18 @@ class ResendMailer
         $subject = trim($subject);
         if ($subject === '') return false;
 
-        return [
+        $payload = [
             'from' => $from,
             'to' => [$to],
             'subject' => $subject,
-            'text' => $message,
+            'text' => $text,
         ];
+        if (trim($html) !== '') $payload['html'] = $html;
+        return $payload;
     }
 
     /** Send one message. Returns true only when Resend accepts it (HTTP 2xx). */
-    public static function send(string $to, string $subject, string $message, string $from, string $apiKey): bool
+    public static function send(string $to, string $subject, string $text, string $from, string $apiKey, string $html = ''): bool
     {
         self::$lastError = '';
 
@@ -65,7 +67,7 @@ class ResendMailer
             return false;
         }
 
-        $payload = self::payload($to, $from, $subject, $message);
+        $payload = self::payload($to, $from, $subject, $text, $html);
         if ($payload === false) {
             self::$lastError = 'Invalid recipient, sender, or subject.';
             return false;

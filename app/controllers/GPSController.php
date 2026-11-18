@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/GPSDevice.php';
+require_once dirname(__DIR__) . '/models/Product.php';
 require_once dirname(__DIR__) . '/models/Client.php';
 require_once dirname(__DIR__) . '/models/User.php';
 
@@ -50,8 +51,18 @@ class GPSController extends Controller
         if ($trackerImei !== null && $this->gpsModel->imeiExists($trackerImei, $excludeId)) {
             return 'That tracker IMEI / serial is already registered.';
         }
-        if ((int)($data['sim_product_id'] ?? 0) > 0 && (int)$data['sim_product_id'] === (int)($data['camera_sim_product_id'] ?? 0)) {
+        $simId = (int)($data['sim_product_id'] ?? 0);
+        if ($cameraOnly && $simId > 0) return 'Camera only installations do not use a device SIM line. Use the camera SIM line only.';
+        if ($simId > 0 && $simId === (int)($data['camera_sim_product_id'] ?? 0)) {
             return 'Choose different SIM lines for the tracker and camera.';
+        }
+        $hardDriveId = (int)($data['hard_drive_product_id'] ?? 0);
+        if ($hardDriveId > 0 && !$needsCamera) return 'A hard drive can only be assigned to an installation that includes a camera.';
+        if ($hardDriveId > 0) {
+            $hardDrive = (new Product())->find($hardDriveId);
+            if (!$hardDrive || ($hardDrive['item_category'] ?? '') !== 'Hard drives' || trim((string)($hardDrive['imei'] ?? '')) === '') {
+                return 'Choose a hard drive with a serial number from inventory.';
+            }
         }
         $clientIds = array_map(static fn(array $client): int => (int)$client['id'], $this->clientModel->active());
         $userIds = array_map(static fn(array $user): int => (int)$user['id'], $this->userModel->active());
@@ -157,6 +168,7 @@ class GPSController extends Controller
         $this->view('gps/deinstallations', [
             'title' => 'Deinstallations',
             'activeInstallations' => $this->gpsModel->activeForDeinstallation(),
+            'equipmentOptions' => $this->gpsModel->activeEquipmentForDeinstallation(),
             'deinstallations' => $this->gpsModel->deinstallations(),
         ]);
     }
@@ -167,11 +179,21 @@ class GPSController extends Controller
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/index.php?controller=gps&action=deinstallations');
         }
-        $installationId = $this->sanitizeInt($_POST['gps_device_id'] ?? 0);
+        $reference = trim((string)($_POST['installed_equipment'] ?? ''));
         $error = !$this->validateCsrf() ? 'Invalid security token.' : null;
+        $installationId = 0;
+        $removedItem = '';
+        if ($error === null) {
+            if (!preg_match('/^(\d+):(tracker|camera)$/D', $reference, $match)) {
+                $error = 'Pick a tracker or camera from the active installations.';
+            } else {
+                $installationId = (int)$match[1];
+                $removedItem = $match[2];
+            }
+        }
         if ($error === null) {
             try {
-                $this->gpsModel->deinstall($installationId, $_POST, (int)($_SESSION['user']['id'] ?? 0));
+                $this->gpsModel->deinstall($installationId, $_POST, (int)($_SESSION['user']['id'] ?? 0), $removedItem);
                 $this->redirect('/index.php?controller=gps&action=deinstallations');
             } catch (InvalidArgumentException $exception) {
                 $error = $exception->getMessage();
@@ -180,6 +202,7 @@ class GPSController extends Controller
         $this->view('gps/deinstallations', [
             'title' => 'Deinstallations',
             'activeInstallations' => $this->gpsModel->activeForDeinstallation(),
+            'equipmentOptions' => $this->gpsModel->activeEquipmentForDeinstallation(),
             'deinstallations' => $this->gpsModel->deinstallations(),
             'error' => $error,
             'formData' => $_POST,

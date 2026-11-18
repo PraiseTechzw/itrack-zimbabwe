@@ -28,12 +28,12 @@ The application uses a small MVC structure built with plain PHP classes and PDO.
 
 ### Operations modules
 
-- **Dashboard** – role-aware workspace with operational summaries and available-module access.
-- **Inventory** – individually recorded trackers, FLS units, cameras, SIM lines, and related equipment, including cost and selling prices.
+- **Dashboard** – role-aware workspace with operational summaries, a **Cost total** card, and available-module access.
+- **Inventory** – individually recorded trackers, FLS units, cameras, hard drives, SIM lines, and related equipment, including cost, selling price, and VAT rate; SIM numbers are limited to 10 digits. The register lists returned equipment and its Excel download includes installed quantities.
 - **Bulk inventory** – create multiple stock lines manually or upload Excel (`.xlsx`) / CSV files.
-- **Installations / GPS devices** – record Basic, FLS, and camera packages with a client, installer, IT support person, vehicle identifiers, and separate device/camera SIM lines. Equipment is assigned from available stock.
+- **Installations / GPS devices** – record Basic, FLS, and camera packages with a client, installer, IT support person, vehicle identifiers, and separate device/camera SIM lines. Camera-only packages use only the camera SIM line, and camera installations can link a serialised hard drive. Equipment is assigned from available stock.
 - **Bulk installations** – record several installations in one workflow.
-- **Deinstallations** – record devices and cameras removed from vehicles, including registration and chassis numbers; returned equipment is restored to inventory.
+- **Deinstallations** – pick a specific installed tracker or camera to remove, record the vehicle registration (chassis is optional), and return the linked equipment to inventory.
 - **Clients** – customer and client organization records.
 - **Suppliers** – procurement partner records.
 - **Purchases** – purchase-order capture and status updates with supplier workflows.
@@ -49,7 +49,7 @@ The application uses a small MVC structure built with plain PHP classes and PDO.
 - **Payments**, **expenses**, **petty cash**, and **cash book** records with CRUD workflows.
 - **Reports** with operational and financial report types, preset periods, custom date ranges, previews, generated records, and export support.
 - **Report exports** through the PDF and XLSX report services.
-- Optional OpenRouter-powered business insights using bounded report aggregates. The assistant does not execute AI-generated SQL or receive customer names.
+- Optional OpenRouter-powered business insights using bounded report aggregates, including database-backed demand forecasts for trackers, cameras and FLS. The assistant does not execute AI-generated SQL or receive customer names.
 
 ## Requirements
 

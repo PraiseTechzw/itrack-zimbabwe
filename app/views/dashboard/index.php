@@ -9,7 +9,7 @@ $metricCards = [
     ['label'=>'Client accounts','value'=>(int)($summary['clients']??0),'meta'=>'Customer organizations','icon'=>'fa-handshake-angle','tone'=>'mint'],
     ['label'=>'GPS devices','value'=>(int)($summary['gps_devices']??0),'meta'=>'Trackers being managed','icon'=>'fa-location-dot','tone'=>'amber'],
     ['label'=>'Low-stock alerts','value'=>(int)($summary['low_stock']??0),'meta'=>'Need replenishment review','icon'=>'fa-triangle-exclamation','tone'=>'rose'],
-    ['label'=>'Inventory value','value'=>'$'.number_format((float)($summary['inventory_value']??0),2),'meta'=>'Estimated cost value','icon'=>'fa-chart-line','tone'=>'violet'],
+    ['label'=>'Cost total','value'=>'$'.number_format((float)($summary['inventory_value']??0),2),'meta'=>'Cost of stock on hand','icon'=>'fa-chart-line','tone'=>'violet'],
 ];
 $quickActions = [
     ['label'=>'Add inventory','route'=>'inventory','icon'=>'fa-plus'],

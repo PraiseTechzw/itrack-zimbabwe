@@ -2,6 +2,7 @@
 
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/Product.php';
+require_once dirname(__DIR__) . '/models/GPSDevice.php';
 require_once dirname(__DIR__) . '/services/XlsxReport.php';
 
 class InventoryController extends Controller
@@ -13,15 +14,41 @@ class InventoryController extends Controller
         $this->productModel = new Product();
     }
 
+    /** Shared validation for single-item create/edit so both paths enforce the same rules. */
+    private static function itemInputError(string $category, string $type, string $identifier, bool $duplicate, array $data): ?string
+    {
+        $types = Product::itemTypes();
+        if (!isset($types[$category]) || !in_array($type, $types[$category], true)) return 'Choose a valid item category and type.';
+        $identifierError = Product::identifierError($category, $identifier);
+        if ($identifierError !== null) return $identifierError;
+        if ($duplicate) return 'That serial number / IMEI is already registered.';
+        $cost = $data['cost_price'] ?? 0;
+        $selling = $data['selling_price'] ?? 0;
+        if ((!is_numeric($cost) && $cost !== '') || (float) $cost < 0
+            || (!is_numeric($selling) && $selling !== '') || (float) $selling < 0) {
+            return 'Enter valid non-negative cost and selling prices.';
+        }
+        try {
+            Product::vatRate($data['vat_rate'] ?? null);
+        } catch (InvalidArgumentException $exception) {
+            return $exception->getMessage();
+        }
+        return null;
+    }
+
     public function index(): void
     {
         $this->requireModuleAccess('inventory', ['Administrator','Procurement Officer','Store Officer','Staff']);
-        $this->view('inventory/index', ['products' => $this->productModel->all()]);
+        $this->view('inventory/index', [
+            'products' => $this->productModel->all(),
+            'deinstallations' => (new GPSDevice())->deinstallations(),
+        ]);
     }
 
     public function export(): void
     {
         $this->requireModuleAccess('inventory', ['Administrator','Procurement Officer','Store Officer','Staff']);
+        $installedQuantities = $this->productModel->installedQuantities();
         $rows = array_map(static fn(array $product): array => [
             'inventory_id' => (int)$product['id'],
             'category' => (string)($product['item_category'] ?? ''),
@@ -30,8 +57,11 @@ class InventoryController extends Controller
             'sku' => (string)($product['sku'] ?? ''),
             'unit' => (string)($product['unit'] ?? 'pcs'),
             'quantity_in_stock' => (int)($product['opening_stock'] ?? 0),
+            'quantity_installed' => (int)($installedQuantities[(int)$product['id']] ?? 0),
             'cost_price' => (float)($product['cost_price'] ?? 0),
             'selling_price' => (float)($product['selling_price'] ?? 0),
+            'vat_rate' => (float)($product['vat_rate'] ?? 15),
+            'selling_price_incl_vat' => round((float)($product['selling_price'] ?? 0) * (1 + (float)($product['vat_rate'] ?? 15) / 100), 2),
             'reorder_level' => (int)($product['reorder_level'] ?? 0),
             'status' => (string)($product['status'] ?? ''),
         ], $this->productModel->all());
@@ -55,16 +85,16 @@ class InventoryController extends Controller
             $types = Product::itemTypes();
             $type = trim((string) ($_POST['item_type'] ?? ''));
             $identifier = trim((string) ($_POST['identifier'] ?? ''));
-            $needsIdentifier = in_array($category, ['FLS', 'Cameras', 'Sim cards'], true);
             $duplicateIdentifier = $identifier !== '' && $this->productModel->imeiExists($identifier);
-            if (!isset($types[$category]) || !in_array($type, $types[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || $duplicateIdentifier) {
+            $error = self::itemInputError($category, $type, $identifier, $duplicateIdentifier, $_POST);
+            if ($error !== null) {
                 $this->view('inventory/form', [
                     'title' => 'Create Product',
                     'mode' => 'create',
                     'product' => $_POST,
                     'deviceTypes' => $deviceTypes,
                     'itemTypes' => $types,
-                    'error' => $duplicateIdentifier ? 'That serial number / IMEI is already registered.' : ($needsIdentifier && $identifier === '' ? 'Enter the unique numeric serial, IMEI, or SIM line number for this item.' : 'Choose a valid item and type, and use digits only for the serial / IMEI.'),
+                    'error' => $error,
                 ]);
                 return;
             }
@@ -101,21 +131,33 @@ class InventoryController extends Controller
                     'fls' => 'FLS',
                     'camera', 'cameras' => 'Cameras',
                     'sim card', 'sim cards', 'sim cards / lines', 'lines', 'line' => 'Sim cards',
+                    'hard drive', 'hard drives' => 'Hard drives',
                     'tracker', 'trackers' => 'Tracker',
                     default => trim((string)($row['item_category'] ?? '')),
                 };
                 $category = trim((string)($row['item_category'] ?? ''));
                 $type = trim((string)($row['item_type'] ?? ''));
                 $identifier = trim((string)($row['identifier'] ?? ''));
-                $needsIdentifier = in_array($category, ['FLS', 'Cameras', 'Sim cards'], true);
+                $needsIdentifier = (bool) Product::identifierRules($category)['required'];
                 $quantity = (int)($row['quantity'] ?? 0);
-                if (!in_array($type, $types[$category] ?? [], true) || $quantity < 1 || ($needsIdentifier && ($quantity !== 1 || $identifier === '')) || ($identifier !== '' && $quantity !== 1) || !preg_match('/^\\d*$/', $identifier) || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier))) || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0) || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0) $valid = false;
+                try {
+                    $vatRate = Product::vatRate($row['vat_rate'] ?? null);
+                } catch (InvalidArgumentException) {
+                    $vatRate = -1.0;
+                }
+                if (!in_array($type, $types[$category] ?? [], true) || $quantity < 1
+                    || ($needsIdentifier && $quantity !== 1) || ($identifier !== '' && $quantity !== 1)
+                    || Product::identifierError($category, $identifier) !== null
+                    || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier)))
+                    || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0)
+                    || (float)($row['cost_price'] ?? 0) < 0 || (float)($row['selling_price'] ?? 0) < 0 || $vatRate < 0) $valid = false;
                 if ($identifier !== '') $identifiers[$identifier] = true;
                 $row['unit'] = trim((string)($row['unit'] ?? 'pcs')) ?: 'pcs';
+                $row['vat_rate'] = $vatRate >= 0 ? $vatRate : 15.0;
             }
             unset($row);
             if (!$valid) {
-                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–' . $maximumRows . ' valid rows. FLS, cameras, and SIM lines require a unique numeric identifier and quantity 1. Use a valid item category/type and non-negative prices.']);
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–' . $maximumRows . ' valid rows. FLS, cameras, hard drives, and SIM lines require a unique identifier and quantity 1. SIM lines are limited to 10 digits. Use valid prices and a VAT rate between 0 and 100.']);
                 return;
             }
             $this->productModel->createMany($rows, []);
@@ -143,14 +185,15 @@ class InventoryController extends Controller
             $category = trim((string) ($_POST['item_category'] ?? ''));
             $type = trim((string) ($_POST['item_type'] ?? ''));
             $identifier = trim((string) ($_POST['identifier'] ?? ''));
-            $needsIdentifier = in_array($category, ['FLS', 'Cameras', 'Sim cards'], true);
-            if (!in_array($type, Product::itemTypes()[$category] ?? [], true) || !preg_match('/^\\d*$/', $identifier) || ($needsIdentifier && $identifier === '') || ($identifier !== '' && $this->productModel->imeiExists($identifier, $id))) {
+            $error = self::itemInputError($category, $type, $identifier, $identifier !== '' && $this->productModel->imeiExists($identifier, $id), $_POST);
+            if ($error !== null) {
                 $this->view('inventory/form', [
                     'title' => 'Edit Product',
                     'mode' => 'edit',
                     'product' => array_merge($product, $_POST),
                     'deviceTypes' => $deviceTypes,
-                    'error' => 'Choose a valid item/type. FLS, cameras, and SIM lines require a unique numeric identifier.', 'itemTypes' => Product::itemTypes(),
+                    'error' => $error,
+                    'itemTypes' => Product::itemTypes(),
                 ]);
                 return;
             }

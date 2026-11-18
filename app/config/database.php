@@ -142,6 +142,7 @@ class Database
             unit TEXT DEFAULT 'pcs',
             cost_price REAL DEFAULT 0,
             selling_price REAL DEFAULT 0,
+            vat_rate REAL DEFAULT 15,
             opening_stock INTEGER DEFAULT 0,
             reorder_level INTEGER DEFAULT 0,
             status TEXT DEFAULT 'active',
@@ -380,8 +381,11 @@ class Database
             device_type TEXT NOT NULL,
             imei TEXT,
             camera_serial TEXT,
+            hard_drive_serial TEXT,
+            removed_item TEXT,
+            product_id INTEGER,
             registration_number TEXT NOT NULL,
-            chassis_number TEXT NOT NULL,
+            chassis_number TEXT,
             removed_at TEXT NOT NULL,
             reason TEXT,
             created_by INTEGER,
@@ -400,6 +404,7 @@ class Database
 
         foreach ([
             'gps_devices' => ['device_type' => "TEXT DEFAULT 'Galileosky 7x'", 'package_type' => "TEXT DEFAULT 'Basic installation'"],
+            'deinstallations' => ['hard_drive_serial' => 'TEXT', 'removed_item' => 'TEXT', 'product_id' => 'INTEGER'],
             'sales' => ['sale_type' => "TEXT DEFAULT 'speed_certificates_tracking'", 'package_type' => "TEXT DEFAULT 'basic_installation'"],
             'requisitions' => ['purpose' => "TEXT DEFAULT ''"],
             'invoices' => ['currency' => "TEXT DEFAULT 'USD'", 'issue_date' => 'TEXT', 'reference_number' => 'TEXT', 'sales_person' => 'TEXT', 'customer_registered_name' => 'TEXT', 'customer_trade_name' => 'TEXT', 'customer_address' => 'TEXT', 'customer_email' => 'TEXT', 'customer_phone' => 'TEXT', 'customer_tin' => 'TEXT', 'customer_vat' => 'TEXT'],
@@ -520,7 +525,7 @@ class Database
     {
         $columns = $pdo->query('PRAGMA table_info(products)')->fetchAll();
         $existing = array_column($columns, 'name');
-        foreach (['item_category' => "TEXT NOT NULL DEFAULT 'Tracker'", 'item_type' => "TEXT NOT NULL DEFAULT 'Teltonika FMB920'"] as $name => $definition) {
+        foreach (['item_category' => "TEXT NOT NULL DEFAULT 'Tracker'", 'item_type' => "TEXT NOT NULL DEFAULT 'Teltonika FMB920'", 'vat_rate' => 'REAL DEFAULT 15'] as $name => $definition) {
             if (!in_array($name, $existing, true)) $pdo->exec("ALTER TABLE products ADD COLUMN {$name} {$definition}");
         }
         $pdo->exec("UPDATE products SET item_category = 'Sim cards' WHERE item_category = 'Line'");
@@ -541,6 +546,8 @@ class Database
             'support_id' => 'INTEGER',
             'camera_sim_product_id' => 'INTEGER',
             'camera_sim_number' => 'TEXT',
+            'hard_drive_product_id' => 'INTEGER',
+            'hard_drive_serial' => 'TEXT',
             'registration_number' => 'TEXT',
             'chassis_number' => 'TEXT',
             'deinstalled_at' => 'TEXT',

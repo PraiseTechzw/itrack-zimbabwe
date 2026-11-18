@@ -8,19 +8,20 @@
 				<div class="report-insights-icon" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
 				<div class="eyebrow mb-2">Decision support</div>
 				<h2 id="report-insights-title">AI business insights</h2>
-				<p>Ask a question about recent sales, stock levels, or purchase orders. Get a concise summary to support your operational decisions.</p>
+				<p>Ask about sales, stock levels, purchase orders, or the most common tracker, camera and FLS demand. Forecasts use installation and requisition data from the database.</p>
 				<div class="report-insights-topics" aria-label="Available insight topics">
 					<span><i class="fa-solid fa-chart-line" aria-hidden="true"></i>Sales</span>
 					<span><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>Inventory</span>
 					<span><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i>Purchases</span>
+					<span><i class="fa-solid fa-location-dot" aria-hidden="true"></i>Demand forecast</span>
 				</div>
 			</div>
 			<div class="report-insights-workspace">
 				<form id="ai-insights-form" class="vstack gap-3" action="?controller=reports&amp;action=ask" method="post">
 					<?= $this->csrfField() ?>
 					<label class="form-label mb-0" for="ai-insights-question">What would you like to know?</label>
-					<textarea class="form-control" id="ai-insights-question" name="question" rows="3" maxlength="1000" placeholder="For example: What should I pay attention to in recent sales and stock levels?" required></textarea>
-					<div class="report-prompt-list" aria-label="Suggested questions"><button type="button" data-question="Compare sales in the last 30 days with the previous 30 days and summarize the main changes.">Sales trend</button><button type="button" data-question="Which products need attention based on current stock and reorder levels?">Low stock</button><button type="button" data-question="Summarize purchase orders by status and point out any pending commitments.">Purchase orders</button></div>
+					<textarea class="form-control" id="ai-insights-question" name="question" rows="3" maxlength="1000" placeholder="For example: Which trackers, cameras or FLS units are most in demand and what should we expect next?" required></textarea>
+					<div class="report-prompt-list" aria-label="Suggested questions"><button type="button" data-question="Based on installation requests and completed installations, what are the most common demands for trackers, cameras and FLS? Forecast which will be requested most next.">Demand forecast</button><button type="button" data-question="Compare sales in the last 30 days with the previous 30 days and summarize the main changes.">Sales trend</button><button type="button" data-question="Which products need attention based on current stock and reorder levels?">Low stock</button><button type="button" data-question="Summarize purchase orders by status and point out any pending commitments.">Purchase orders</button></div>
 					<div class="report-insights-form-footer">
 						<span class="report-insights-privacy"><i class="fa-solid fa-lock" aria-hidden="true"></i>Aggregated data only. Avoid personal or confidential information.</span>
 						<button class="btn btn-primary flex-shrink-0" id="ai-insights-submit" type="submit"><i class="fa-solid fa-paper-plane me-2" aria-hidden="true"></i>Get insights</button>

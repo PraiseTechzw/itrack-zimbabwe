@@ -5,6 +5,12 @@ require_once __DIR__ . '/Product.php';
 
 class GPSDevice extends Model
 {
+    /** Inventory columns that hold equipment assigned to an installation. */
+    private const EQUIPMENT_PRODUCT_KEYS = [
+        'tracker_product_id', 'fls_product_id', 'camera_product_id',
+        'sim_product_id', 'camera_sim_product_id', 'hard_drive_product_id',
+    ];
+
     public static function deviceTypes(): array
     {
         return ['Galileosky 7x', 'Teltonika FMB920', 'Smart S-24xx', 'Teltonika FMC920', 'Teltonika FMB140', 'Teltonika FMC130', 'Queclink GV300W', 'Concox GT06N', 'Ruptela Trace5', 'Howen Hero-ME40'];
@@ -30,13 +36,16 @@ class GPSDevice extends Model
         $cameraId = (int) ($data['camera_product_id'] ?? 0);
         $simId = (int) ($data['sim_product_id'] ?? 0);
         $cameraSimId = (int) ($data['camera_sim_product_id'] ?? 0);
+        $hardDriveId = (int) ($data['hard_drive_product_id'] ?? 0);
+        $cameraOnly = (string)($data['package_type'] ?? '') === 'Camera only';
+        if ($cameraOnly && $simId > 0) throw new InvalidArgumentException('Camera only installations do not use a device SIM line.');
         if ($simId > 0 && $simId === $cameraSimId) throw new InvalidArgumentException('Choose different SIM lines for the tracker and camera.');
         $products = new Product();
         $ownsTransaction = !$this->db->inTransaction();
         if ($ownsTransaction) $this->db->beginTransaction();
         try {
             self::validatePackageSelection($data, $trackerId, $flsId, $cameraId);
-            $cameraOnly = (string)($data['package_type'] ?? '') === 'Camera only';
+            self::validateHardDriveSelection($data, $hardDriveId);
             $tracker = $trackerId > 0 ? $products->find($trackerId) : null;
             if (!$cameraOnly && (!$tracker || ($tracker['item_category'] ?? '') !== 'Tracker')) throw new InvalidArgumentException('Select a tracker from inventory.');
             $trackerIdentifier = $tracker ? self::resolveTrackerIdentifier($tracker, (string)($data['tracker_identifier'] ?? '')) : null;
@@ -44,7 +53,8 @@ class GPSDevice extends Model
             $camera = null;
             $deviceSim = null;
             $cameraSim = null;
-            $selectedProducts = [[$flsId, 'FLS'], [$cameraId, 'Cameras'], [$simId, 'Sim cards'], [$cameraSimId, 'Sim cards']];
+            $hardDrive = null;
+            $selectedProducts = [[$flsId, 'FLS'], [$cameraId, 'Cameras'], [$simId, 'Sim cards'], [$cameraSimId, 'Sim cards'], [$hardDriveId, 'Hard drives']];
             if ($trackerId > 0) array_unshift($selectedProducts, [$trackerId, 'Tracker']);
             foreach ($selectedProducts as [$productId, $category]) {
                 if ($productId < 1) {
@@ -54,6 +64,7 @@ class GPSDevice extends Model
                 if (!$product || ($product['item_category'] ?? '') !== $category) throw new InvalidArgumentException('Select valid installation items from inventory.');
                 if ($category === 'FLS') { self::inventoryIdentifier($product, 'FLS serial number'); $fls = $product; }
                 if ($category === 'Cameras') { self::inventoryIdentifier($product, 'Camera serial number'); $camera = $product; }
+                if ($category === 'Hard drives') { self::inventoryIdentifier($product, 'Hard drive serial', false); $hardDrive = $product; }
                 if ($category === 'Sim cards') {
                     self::inventoryIdentifier($product, 'SIM line number');
                     if ($productId === $simId) $deviceSim = $product;
@@ -64,7 +75,7 @@ class GPSDevice extends Model
             $deviceType = (string)($tracker['item_type'] ?? 'Camera');
             $recordIdentifier = $trackerIdentifier ?? $this->cameraOnlyReference();
             $this->execute(
-                'INSERT INTO gps_devices (device_name, device_type, package_type, imei, serial, sim_number, camera_sim_number, status, installed_at, client_id, installer_id, support_id, registration_number, chassis_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
+                'INSERT INTO gps_devices (device_name, device_type, package_type, imei, serial, sim_number, camera_sim_number, hard_drive_serial, status, installed_at, client_id, installer_id, support_id, registration_number, chassis_number, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)',
                 [
                     trim($deviceType),
                     trim($deviceType),
@@ -73,6 +84,7 @@ class GPSDevice extends Model
                     $trackerIdentifier,
                     trim((string)($deviceSim['imei'] ?? '')),
                     trim((string)($cameraSim['imei'] ?? '')),
+                    trim((string)($hardDrive['imei'] ?? '')),
                     'installed',
                     !empty($data['installed_at']) ? trim((string)$data['installed_at']) : null,
                     (int)($data['client_id'] ?? 0) ?: null,
@@ -84,8 +96,8 @@ class GPSDevice extends Model
             );
             $id = $this->lastInsertId();
             $this->execute(
-                'UPDATE gps_devices SET tracker_product_id = ?, fls_product_id = ?, camera_product_id = ?, sim_product_id = ?, camera_sim_product_id = ?, fls_serial = ?, camera_serial = ? WHERE id = ?',
-                [$trackerId ?: null, $flsId ?: null, $cameraId ?: null, $simId ?: null, $cameraSimId ?: null, trim((string)($fls['imei'] ?? '')), trim((string)($camera['imei'] ?? '')), $id]
+                'UPDATE gps_devices SET tracker_product_id = ?, fls_product_id = ?, camera_product_id = ?, sim_product_id = ?, camera_sim_product_id = ?, hard_drive_product_id = ?, fls_serial = ?, camera_serial = ?, hard_drive_serial = ? WHERE id = ?',
+                [$trackerId ?: null, $flsId ?: null, $cameraId ?: null, $simId ?: null, $cameraSimId ?: null, $hardDriveId ?: null, trim((string)($fls['imei'] ?? '')), trim((string)($camera['imei'] ?? '')), trim((string)($hardDrive['imei'] ?? '')), $id]
             );
             if ($ownsTransaction) $this->db->commit();
             return $id;
@@ -99,6 +111,7 @@ class GPSDevice extends Model
             'trackers' => $products->availableForInstallation('Tracker', (int)($device['tracker_product_id'] ?? 0)),
             'fls' => $products->availableForInstallation('FLS', (int)($device['fls_product_id'] ?? 0), true),
             'cameras' => $products->availableForInstallation('Cameras', (int)($device['camera_product_id'] ?? 0), true),
+            'hardDrives' => $products->availableForInstallation('Hard drives', (int)($device['hard_drive_product_id'] ?? 0), true),
             'sims' => $this->simChoices($products, $device),
         ];
     }
@@ -156,12 +169,15 @@ class GPSDevice extends Model
             $cameraId = (int)($data['camera_product_id'] ?? 0);
             $simId = (int)($data['sim_product_id'] ?? 0);
             $cameraSimId = (int)($data['camera_sim_product_id'] ?? 0);
+            $hardDriveId = (int)($data['hard_drive_product_id'] ?? 0);
+            $cameraOnly = (string)($data['package_type'] ?? '') === 'Camera only';
             if (($current['status'] ?? '') === 'deinstalled') throw new InvalidArgumentException('A deinstalled record cannot be edited as an active installation.');
+            if ($cameraOnly && $simId > 0) throw new InvalidArgumentException('Camera only installations do not use a device SIM line.');
             if ($simId > 0 && $simId === $cameraSimId) throw new InvalidArgumentException('Choose different SIM lines for the tracker and camera.');
             self::validatePackageSelection($data, $trackerId, $flsId, $cameraId);
+            self::validateHardDriveSelection($data, $hardDriveId);
             $products = new Product();
-            foreach (['tracker_product_id', 'fls_product_id', 'camera_product_id', 'sim_product_id', 'camera_sim_product_id'] as $key) $products->restore((int)($current[$key] ?? 0));
-            $cameraOnly = (string)($data['package_type'] ?? '') === 'Camera only';
+            foreach (self::EQUIPMENT_PRODUCT_KEYS as $key) $products->restore((int)($current[$key] ?? 0));
             $tracker = $trackerId > 0 ? $products->find($trackerId) : null;
             if (!$cameraOnly && (!$tracker || ($tracker['item_category'] ?? '') !== 'Tracker')) throw new InvalidArgumentException('Select a tracker from inventory.');
             $trackerIdentifier = $tracker ? self::resolveTrackerIdentifier($tracker, (string)($data['tracker_identifier'] ?? '')) : null;
@@ -169,7 +185,8 @@ class GPSDevice extends Model
             $camera = null;
             $deviceSim = null;
             $cameraSim = null;
-            $selectedProducts = [[$flsId, 'FLS'], [$cameraId, 'Cameras'], [$simId, 'Sim cards'], [$cameraSimId, 'Sim cards']];
+            $hardDrive = null;
+            $selectedProducts = [[$flsId, 'FLS'], [$cameraId, 'Cameras'], [$simId, 'Sim cards'], [$cameraSimId, 'Sim cards'], [$hardDriveId, 'Hard drives']];
             if ($trackerId > 0) array_unshift($selectedProducts, [$trackerId, 'Tracker']);
             foreach ($selectedProducts as [$productId, $category]) {
                 if ($productId < 1) continue;
@@ -177,6 +194,7 @@ class GPSDevice extends Model
                 if (!$product || ($product['item_category'] ?? '') !== $category) throw new InvalidArgumentException('Select valid installation items from inventory.');
                 if ($category === 'FLS') { self::inventoryIdentifier($product, 'FLS serial number'); $fls = $product; }
                 if ($category === 'Cameras') { self::inventoryIdentifier($product, 'Camera serial number'); $camera = $product; }
+                if ($category === 'Hard drives') { self::inventoryIdentifier($product, 'Hard drive serial', false); $hardDrive = $product; }
                 if ($category === 'Sim cards') {
                     self::inventoryIdentifier($product, 'SIM line number');
                     if ($productId === $simId) $deviceSim = $product;
@@ -187,7 +205,7 @@ class GPSDevice extends Model
             $deviceType = (string)($tracker['item_type'] ?? 'Camera');
             $recordIdentifier = $trackerIdentifier ?? $this->cameraOnlyReference();
             $this->execute(
-                'UPDATE gps_devices SET device_name = ?, device_type = ?, package_type = ?, imei = ?, serial = ?, sim_number = ?, camera_sim_number = ?, status = ?, installed_at = ?, client_id = ?, installer_id = ?, support_id = ?, registration_number = ?, chassis_number = ?, tracker_product_id = ?, fls_product_id = ?, camera_product_id = ?, sim_product_id = ?, camera_sim_product_id = ?, fls_serial = ?, camera_serial = ? WHERE id = ?',
+                'UPDATE gps_devices SET device_name = ?, device_type = ?, package_type = ?, imei = ?, serial = ?, sim_number = ?, camera_sim_number = ?, hard_drive_serial = ?, status = ?, installed_at = ?, client_id = ?, installer_id = ?, support_id = ?, registration_number = ?, chassis_number = ?, tracker_product_id = ?, fls_product_id = ?, camera_product_id = ?, sim_product_id = ?, camera_sim_product_id = ?, hard_drive_product_id = ?, fls_serial = ?, camera_serial = ? WHERE id = ?',
                 [
                     trim($deviceType),
                     trim($deviceType),
@@ -196,6 +214,7 @@ class GPSDevice extends Model
                     $trackerIdentifier,
                     trim((string)($deviceSim['imei'] ?? '')),
                     trim((string)($cameraSim['imei'] ?? '')),
+                    trim((string)($hardDrive['imei'] ?? '')),
                     'installed',
                     !empty($data['installed_at']) ? trim((string)$data['installed_at']) : null,
                     (int)($data['client_id'] ?? 0) ?: null,
@@ -208,6 +227,7 @@ class GPSDevice extends Model
                     $cameraId ?: null,
                     $simId ?: null,
                     $cameraSimId ?: null,
+                    $hardDriveId ?: null,
                     trim((string)($fls['imei'] ?? '')),
                     trim((string)($camera['imei'] ?? '')),
                     $id,
@@ -228,7 +248,7 @@ class GPSDevice extends Model
             if ($device) {
                 $products = new Product();
                 if (($device['status'] ?? '') !== 'deinstalled') {
-                    foreach (['tracker_product_id', 'fls_product_id', 'camera_product_id', 'sim_product_id', 'camera_sim_product_id'] as $key) $products->restore((int)($device[$key] ?? 0));
+                    foreach (self::EQUIPMENT_PRODUCT_KEYS as $key) $products->restore((int)($device[$key] ?? 0));
                 }
                 $this->execute('DELETE FROM gps_devices WHERE id = :id', [':id' => $id]);
             }
@@ -249,35 +269,84 @@ class GPSDevice extends Model
         return $this->fetchAll('SELECT d.*, c.company_name AS client_name, u.name AS removed_by FROM deinstallations d LEFT JOIN clients c ON c.id = d.client_id LEFT JOIN users u ON u.id = d.created_by ORDER BY d.removed_at DESC, d.id DESC');
     }
 
-    public function deinstall(int $id, array $data, int $userId): void
+    /**
+     * One option per installed tracker or camera that can be picked for removal.
+     * The option reference is "<installation id>:<item>" so the form can submit a
+     * single, validated value instead of trusting a separate hidden field.
+     */
+    public function activeEquipmentForDeinstallation(): array
+    {
+        $options = [];
+        foreach ($this->activeForDeinstallation() as $device) {
+            $reference = (int) $device['id'];
+            $registration = trim((string) ($device['registration_number'] ?? ''));
+            $suffix = $registration !== '' ? ' · ' . $registration : '';
+            if (($device['package_type'] ?? '') !== 'Camera only' && trim((string) ($device['imei'] ?? '')) !== '') {
+                $options[] = [
+                    'ref' => $reference . ':tracker',
+                    'item' => 'tracker',
+                    'label' => 'Tracker · ' . ($device['device_type'] ?: 'Device') . ' · ' . $device['imei'] . $suffix,
+                    'serial' => (string) $device['imei'],
+                    'registration' => $registration,
+                    'chassis' => trim((string) ($device['chassis_number'] ?? '')),
+                ];
+            }
+            if (trim((string) ($device['camera_serial'] ?? '')) !== '') {
+                $options[] = [
+                    'ref' => $reference . ':camera',
+                    'item' => 'camera',
+                    'label' => 'Camera · ' . $device['camera_serial'] . $suffix,
+                    'serial' => (string) $device['camera_serial'],
+                    'registration' => $registration,
+                    'chassis' => trim((string) ($device['chassis_number'] ?? '')),
+                ];
+            }
+        }
+        return $options;
+    }
+
+    /**
+     * Deinstall a specific tracker or camera picked from the active installations.
+     * Removing any item closes the installation and returns all of its equipment
+     * to stock, which keeps the stock ledger consistent with a single transaction.
+     */
+    public function deinstall(int $id, array $data, int $userId, string $removedItem = 'tracker'): void
     {
         $this->db->beginTransaction();
         try {
             $device = $this->find($id);
             if (!$device || ($device['status'] ?? '') !== 'installed') throw new InvalidArgumentException('Select an active installation to deinstall.');
+            if (!in_array($removedItem, ['tracker', 'camera'], true)) throw new InvalidArgumentException('Choose the tracker or camera being removed.');
+            $isCamera = $removedItem === 'camera';
+            if ($isCamera && trim((string)($device['camera_serial'] ?? '')) === '') throw new InvalidArgumentException('This installation has no camera to remove.');
+            if (!$isCamera && (($device['package_type'] ?? '') === 'Camera only' || trim((string)($device['imei'] ?? '')) === '')) throw new InvalidArgumentException('This installation has no tracker to remove.');
+
             $registration = trim((string)($data['registration_number'] ?? ''));
             $chassis = trim((string)($data['chassis_number'] ?? ''));
             $removedAt = trim((string)($data['removed_at'] ?? ''));
             $removalDate = DateTimeImmutable::createFromFormat('!Y-m-d', $removedAt);
             $dateErrors = DateTimeImmutable::getLastErrors();
-            if ($registration === '' || $chassis === '' || $removalDate === false
+            if ($registration === '' || $removalDate === false
                 || ($dateErrors !== false && ($dateErrors['warning_count'] > 0 || $dateErrors['error_count'] > 0))
                 || $removalDate->format('Y-m-d') !== $removedAt) {
-                throw new InvalidArgumentException('Enter the vehicle registration, chassis number, and a valid removal date.');
+                throw new InvalidArgumentException('Enter the vehicle registration and a valid removal date.');
             }
+
             $products = new Product();
-            foreach (['tracker_product_id', 'fls_product_id', 'camera_product_id', 'sim_product_id', 'camera_sim_product_id'] as $key) {
-                $products->restore((int)($device[$key] ?? 0));
-            }
+            foreach (self::EQUIPMENT_PRODUCT_KEYS as $key) $products->restore((int)($device[$key] ?? 0));
+
             $reason = trim((string)($data['reason'] ?? ''));
             $this->execute(
-                'INSERT INTO deinstallations (gps_device_id, client_id, device_type, imei, camera_serial, registration_number, chassis_number, removed_at, reason, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                'INSERT INTO deinstallations (gps_device_id, client_id, device_type, imei, camera_serial, hard_drive_serial, removed_item, product_id, registration_number, chassis_number, removed_at, reason, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                 [
                     $id,
                     (int)($device['client_id'] ?? 0) ?: null,
                     (string)($device['device_type'] ?? ''),
-                    ($device['package_type'] ?? '') === 'Camera only' ? null : (string)($device['imei'] ?? ''),
+                    $isCamera ? null : (string)($device['imei'] ?? ''),
                     (string)($device['camera_serial'] ?? ''),
+                    (string)($device['hard_drive_serial'] ?? ''),
+                    $removedItem,
+                    (int)($device[$isCamera ? 'camera_product_id' : 'tracker_product_id'] ?? 0) ?: null,
                     $registration,
                     $chassis,
                     $removedAt,
@@ -290,6 +359,15 @@ class GPSDevice extends Model
         } catch (Throwable $exception) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             throw $exception;
+        }
+    }
+
+    private static function validateHardDriveSelection(array $data, int $hardDriveId): void
+    {
+        if ($hardDriveId < 1) return;
+        $needsCamera = in_array((string)($data['package_type'] ?? ''), ['Basic + FLS + Camera', 'Camera only', 'Camera + Basic'], true);
+        if (!$needsCamera || (int)($data['camera_product_id'] ?? 0) < 1) {
+            throw new InvalidArgumentException('A hard drive can only be assigned to an installation that includes a camera.');
         }
     }
 
@@ -334,10 +412,11 @@ class GPSDevice extends Model
         return $identifier;
     }
 
-    private static function inventoryIdentifier(array $product, string $label): string
+    private static function inventoryIdentifier(array $product, string $label, bool $digitsOnly = true): string
     {
         $identifier = trim((string)($product['imei'] ?? ''));
-        if ($identifier === '' || !preg_match('/^\d+$/', $identifier)) {
+        $valid = $digitsOnly ? preg_match('/^\d+$/', $identifier) : preg_match('/^[A-Za-z0-9][A-Za-z0-9-]*$/', $identifier);
+        if ($identifier === '' || !$valid) {
             throw new InvalidArgumentException($label . ' must be entered in Inventory before this item can be installed.');
         }
         return $identifier;

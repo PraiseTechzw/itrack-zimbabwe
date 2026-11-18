@@ -47,7 +47,7 @@ class AppSetting extends Model
                 'low_stock_show_inventory' => ['label' => 'Show in inventory', 'type' => 'bool', 'default' => true, 'help' => 'Display a low-stock alert banner on the inventory page.'],
             ],
             'notifications' => [
-                'mail_from' => ['label' => 'From email address', 'type' => 'email', 'default' => 'onboarding@resend.dev', 'max' => 150, 'help' => 'Sender for all Resend mail, including password resets and low-stock alerts. Use a domain verified in Resend; onboarding@resend.dev is for testing only.'],
+                'mail_from' => ['label' => 'From email address', 'type' => 'email', 'default' => 'no-reply@localhost', 'max' => 150, 'help' => 'The address shown as the sender on password-reset and low-stock emails. Use a working address for your organisation.'],
                 'low_stock_email_enabled' => ['label' => 'Email low-stock alerts', 'type' => 'bool', 'default' => false, 'help' => 'Send a summary email when items reach their reorder level.'],
                 'low_stock_email_recipients' => ['label' => 'Alert recipients', 'type' => 'text', 'default' => '', 'max' => 500, 'help' => 'Comma-separated email addresses that receive low-stock summaries.'],
                 'low_stock_email_interval_hours' => ['label' => 'Minimum hours between emails', 'type' => 'int', 'default' => 24, 'min' => 1, 'max' => 720, 'help' => 'Prevents repeated alerts on every page load.'],

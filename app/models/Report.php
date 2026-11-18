@@ -87,6 +87,42 @@ class Report extends ModuleModel {
             default => $this->fetchAll('SELECT s.sale_date, c.company_name AS client, s.sale_type, s.package_type, s.status, s.total_amount FROM sales s LEFT JOIN clients c ON c.id=s.client_id' . $condition . ' ORDER BY s.sale_date DESC', $params),
         };
     }
+    /** Fulfilled demand: units installed per product category/type in a period. */
+    private function installedDemand(DateTimeImmutable $start, DateTimeImmutable $end): array
+    {
+        return $this->fetchAll(
+            'SELECT p.item_category AS category, p.item_type AS item_type, COUNT(*) AS quantity FROM (
+                SELECT tracker_product_id AS product_id FROM gps_devices WHERE status = \'installed\' AND installed_at BETWEEN ? AND ? AND tracker_product_id IS NOT NULL
+                UNION ALL SELECT fls_product_id FROM gps_devices WHERE status = \'installed\' AND installed_at BETWEEN ? AND ? AND fls_product_id IS NOT NULL
+                UNION ALL SELECT camera_product_id FROM gps_devices WHERE status = \'installed\' AND installed_at BETWEEN ? AND ? AND camera_product_id IS NOT NULL
+                UNION ALL SELECT sim_product_id FROM gps_devices WHERE status = \'installed\' AND installed_at BETWEEN ? AND ? AND sim_product_id IS NOT NULL
+                UNION ALL SELECT camera_sim_product_id FROM gps_devices WHERE status = \'installed\' AND installed_at BETWEEN ? AND ? AND camera_sim_product_id IS NOT NULL
+                UNION ALL SELECT hard_drive_product_id FROM gps_devices WHERE status = \'installed\' AND installed_at BETWEEN ? AND ? AND hard_drive_product_id IS NOT NULL
+            ) installed JOIN products p ON p.id = installed.product_id
+            GROUP BY p.item_category, p.item_type ORDER BY quantity DESC',
+            array_merge(...array_fill(0, 6, [$start->format('Y-m-d'), $end->format('Y-m-d')]))
+        );
+    }
+
+    /** Requested demand: quantities asked for in installation requisitions. */
+    private function requestedDemand(DateTimeImmutable $start, DateTimeImmutable $end): array
+    {
+        $totals = ['Tracker' => 0, 'Cameras' => 0, 'FLS' => 0, 'Sim cards' => 0];
+        $rows = $this->fetchAll(
+            'SELECT installation_items FROM requisitions WHERE request_type = \'installation\' AND installation_items IS NOT NULL AND requested_date BETWEEN ? AND ?',
+            [$start->format('Y-m-d'), $end->format('Y-m-d')]
+        );
+        $categories = ['device' => 'Tracker', 'camera' => 'Cameras', 'fls' => 'FLS', 'sim_line' => 'Sim cards'];
+        foreach ($rows as $row) {
+            $items = json_decode((string)$row['installation_items'], true);
+            if (!is_array($items)) continue;
+            foreach ($categories as $key => $category) {
+                $totals[$category] += max(0, (int)($items[$key]['quantity'] ?? 0));
+            }
+        }
+        return $totals;
+    }
+
     public function aiInsightsData(): array
     {
         $today = new DateTimeImmutable('today');
@@ -121,6 +157,17 @@ class Report extends ModuleModel {
             'purchase_orders_by_status' => $this->fetchAll(
                 'SELECT LOWER(status) AS status, COUNT(*) AS count, COALESCE(SUM(total_amount), 0) AS amount FROM purchase_orders GROUP BY LOWER(status) ORDER BY count DESC LIMIT 8'
             ),
+            'demand_forecast' => [
+                'recent_30_days' => [
+                    'installed_by_category' => $this->installedDemand($currentStart, $today),
+                    'requested_quantities' => $this->requestedDemand($currentStart, $today),
+                ],
+                'previous_30_days' => [
+                    'installed_by_category' => $this->installedDemand($previousStart, $previousEnd),
+                    'requested_quantities' => $this->requestedDemand($previousStart, $previousEnd),
+                ],
+                'note' => 'Demand is derived from installation requisitions (requests) and gps_devices installations (fulfilled). Identify the most common tracker, camera and FLS demand and forecast which is likely to be requested next; state uncertainty and do not invent figures.',
+            ],
             'currency_note' => 'Amounts use the currency configured by the business; do not infer or convert currency.',
         ];
     }

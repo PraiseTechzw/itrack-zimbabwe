@@ -6,7 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Hard drive inventory category with an alphanumeric serial, selectable for camera installations and returned to stock on deinstallation.
+- VAT rate on inventory items, with VAT-inclusive selling price shown in the register and included in the Excel export.
+- Installed quantities column in the downloadable inventory workbook, derived from active installations.
+- Database-backed demand aggregates (requisition requests and fulfilled installations) feeding AI business-insight forecasts for trackers, cameras and FLS.
+- Returned equipment section on the inventory page and an installation-device/camera picker on the deinstallation form.
+- Regression suite covering identifier rules, installation stock, deinstallation returns, demand aggregates and workbook generation (`php tests/run.php`).
+
 ### Changed
+
+- Dashboard inventory value card is now labelled **Cost total**.
+- Camera-only installations no longer offer a device SIM line; only the camera SIM line applies.
+- SIM line identifiers are limited to 10 digits; FLS/camera serials remain numeric and hard-drive serials are alphanumeric.
 
 - Expanded contribution guidance with local setup, branch naming, MVC conventions, migration expectations, verification commands, security requirements, and MIT licensing notes.
 - Reworked the pull-request template with code, UI, API, database, deployment, documentation, screenshot, and security checklists.
@@ -14,6 +27,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added GitHub issue configuration for private security-vulnerability reporting.
 - Expanded the code of conduct, architecture guide, security guide, and documentation index.
 - Removed duplicate `.env` entries from `.gitignore`.
+
+### Fixed
+
+- Deinstallation no longer requires a chassis number.
+- Deinstalling a tracker or camera now records which item was removed and restores its equipment to stock exactly once.
 
 ## [1.0.1] – 2026-11-02
 

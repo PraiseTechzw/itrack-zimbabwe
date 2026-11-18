@@ -14,24 +14,25 @@ This guide maps the current iTrack Zimbabwe application to the workflows availab
 
 ## Dashboard
 
-The dashboard provides an operational overview with user count, tracked products, client accounts, GPS/installation records, low-stock alerts, inventory value, quick actions, and a role-specific module launcher.
+The dashboard provides an operational overview with user count, tracked products, client accounts, GPS/installation records, low-stock alerts, a **Cost total** (stock valued at cost), quick actions, and a role-specific module launcher.
 
 ## Inventory
 
-Inventory supports the stock register for trackers, FLS units, cameras, SIM cards/mobile lines, and related equipment. Records support category, item type, quantity, unit, cost price, selling price, reorder level, and optional numeric serial/IMEI/SIM identifiers.
+Inventory supports the stock register for trackers, FLS units, cameras, hard drives, SIM cards/mobile lines, and related equipment. Records support category, item type, quantity, unit, cost price, selling price, VAT rate, reorder level, and serial/IMEI/SIM identifiers. SIM line numbers are limited to 10 digits; hard drives use an alphanumeric serial.
 
 The inventory workflows include:
 
 - Single-item create, edit, and delete.
 - Bulk stock entry for several rows at once, entered manually.
-- Download of the current inventory register as an Excel workbook.
-- Serialized-item validation for FLS units and cameras.
+- Download of the current inventory register as an Excel workbook, including VAT and the quantity currently installed per item.
+- Serialized-item validation for FLS units, cameras, hard drives and SIM lines.
+- A returned-equipment panel listing items restored to stock by deinstallations.
 - Stock movement and quantity tracking.
 - API listing through the inventory endpoint.
 
 ## Installations / GPS devices
 
-The installations module records tracker deployments and operational device details. It supports tracker IMEI/serial values, SIM numbers, package types, status, and optional FLS/camera/package equipment selected from stock.
+The installations module records tracker deployments and operational device details. It supports tracker IMEI/serial values, SIM numbers, package types, status, and optional FLS/camera/hard-drive equipment selected from stock. Camera installations can associate a serialised hard drive, and camera-only packages use only the camera SIM line (no device SIM line).
 
 The installation workflows include:
 
@@ -39,6 +40,7 @@ The installation workflows include:
 - Bulk installation entry.
 - Stock-backed equipment selection and quantity reduction.
 - Installation and GPS device listing.
+- Deinstallation by picking a specific installed tracker or camera; the chassis number is optional and all linked equipment is returned to stock.
 
 ## Parties and people
 
@@ -71,7 +73,7 @@ Accounting access is permission-controlled for finance roles and administrators.
 
 Reports support operational and financial report records, preset periods, custom calendar ranges, previews, generation, and exports. The report services provide PDF and XLSX output.
 
-The optional Reports assistant can answer questions about bounded aggregates such as recent sales, low stock, and purchase-order totals when `OPENROUTER_API_KEY` is configured. It does not execute generated SQL or receive customer names.
+The optional Reports assistant can answer questions about bounded aggregates such as recent sales, low stock, purchase-order totals, and database-backed demand for trackers, cameras and FLS. It compares requested quantities from installation requisitions with fulfilled installations to forecast the most common demand, using only aggregated figures. It does not execute generated SQL or receive customer names.
 
 ## Data and runtime behavior
 

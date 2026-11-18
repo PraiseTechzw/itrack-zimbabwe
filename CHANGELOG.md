@@ -4,7 +4,7 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] – 2026-11-18
 
 ### Added
 
@@ -20,7 +20,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Dashboard inventory value card is now labelled **Cost total**.
 - Camera-only installations no longer offer a device SIM line; only the camera SIM line applies.
 - SIM line identifiers are limited to 10 digits; FLS/camera serials remain numeric and hard-drive serials are alphanumeric.
-
 - Expanded contribution guidance with local setup, branch naming, MVC conventions, migration expectations, verification commands, security requirements, and MIT licensing notes.
 - Reworked the pull-request template with code, UI, API, database, deployment, documentation, screenshot, and security checklists.
 - Replaced invalid issue-form markup with valid Markdown issue templates for bug reports and feature requests.

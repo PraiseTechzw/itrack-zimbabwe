@@ -12,6 +12,6 @@ return [
     'sales' => ['controller' => 'SalesController', 'actions' => ['index', 'create', 'status']],
     'requisition' => ['controller' => 'RequisitionController', 'actions' => ['index', 'create', 'decide']],
     'reports' => ['controller' => 'ReportsController', 'actions' => ['index', 'preview', 'generate', 'ask', 'export']],
-    'settings' => ['controller' => 'SettingsController', 'actions' => ['index']],
+    'settings' => ['controller' => 'SettingsController', 'actions' => ['index', 'save', 'sendAlert']],
     'permissions' => ['controller' => 'PermissionsController', 'actions' => ['index', 'save']],
 ];

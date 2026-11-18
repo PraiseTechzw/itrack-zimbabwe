@@ -2,9 +2,12 @@
 $title = 'Inventory';
 $products = $products ?? [];
 $deinstallations = $deinstallations ?? [];
+$lowStockItems = $lowStockItems ?? [];
+$defaultReorderLevel = (int)($defaultReorderLevel ?? setting_int('default_reorder_level', 5));
 $totalUnits = array_sum(array_map(static fn($p) => (int)($p['opening_stock'] ?? 0), $products));
 $costTotal = array_sum(array_map(static fn($p) => (int)($p['opening_stock'] ?? 0) * (float)($p['cost_price'] ?? 0), $products));
-$lowStock = count(array_filter($products, static fn($p) => (int)($p['opening_stock'] ?? 0) <= (int)($p['reorder_level'] ?? 0)));
+$reorderFor = static fn(array $p): int => (int)($p['reorder_level'] ?? 0) > 0 ? (int)$p['reorder_level'] : $defaultReorderLevel;
+$lowStock = count(array_filter($products, static fn($p) => (int)($p['opening_stock'] ?? 0) <= $reorderFor($p)));
 $categories = array_unique(array_map(static fn($p) => $p['item_category'] ?? 'Tracker', $products));
 $esc = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 $categoryLabel = static fn($category) => $category === 'Sim cards' ? 'SIM cards / Lines' : $category;
@@ -16,6 +19,12 @@ $categoryLabel = static fn($category) => $category === 'Sim cards' ? 'SIM cards 
     <div><h1>Inventory</h1><p>Track stock levels, unit prices, VAT, and equipment available for installations.</p></div>
     <div class="d-flex flex-wrap gap-2"><a class="btn btn-light" href="/index.php?controller=inventory&action=export"><i class="fa-solid fa-file-excel me-2"></i>Download Excel</a><a class="btn btn-light" href="/index.php?controller=inventory&action=createBulk"><i class="fa-solid fa-layer-group me-2"></i>Bulk add</a><a class="btn btn-primary" href="/index.php?controller=inventory&action=create"><i class="fa-solid fa-plus me-2"></i>Add item</a></div>
 </section>
+<?php if ($lowStockItems): ?>
+<div class="alert alert-warning border-0 shadow-sm d-flex flex-column flex-lg-row gap-3 align-items-lg-center justify-content-between mb-4" role="status">
+    <div><h2 class="h6 mb-1"><i class="fa-solid fa-triangle-exclamation me-2"></i>Low-stock alert</h2><p class="mb-2 small"><?= count($lowStockItems) ?> item<?= count($lowStockItems) === 1 ? '' : 's' ?> at or below the reorder level. Review and replenish soon.</p><ul class="mb-0 small"><?php foreach (array_slice($lowStockItems, 0, 5) as $item): ?><li><strong><?= $esc($item['item_type'] ?: $item['name']) ?></strong> — <?= (int)$item['opening_stock'] ?> in stock (reorder at <?= (int)$item['reorder_threshold'] ?>)</li><?php endforeach; ?></ul></div>
+    <a class="btn btn-sm btn-outline-dark flex-shrink-0" href="/index.php?controller=settings#settings-inventory">Alert settings</a>
+</div>
+<?php endif; ?>
 <div class="inventory-stats">
     <div class="inventory-stat"><span>Product types</span><strong><?= count($products) ?></strong></div>
     <div class="inventory-stat"><span>Total units in stock</span><strong><?= number_format($totalUnits) ?></strong></div>
@@ -23,9 +32,9 @@ $categoryLabel = static fn($category) => $category === 'Sim cards' ? 'SIM cards 
 </div>
 <div class="card shadow-sm border-0"><div class="card-body p-3 p-lg-4">
     <div class="inventory-tools"><input class="form-control" id="inventory-search" type="search" placeholder="Search item, type, or serial / IMEI"><select class="form-select" id="inventory-category" style="max-width:220px"><option value="">All categories</option><?php foreach ($categories as $category): ?><option value="<?= $esc($category) ?>"><?= $esc($categoryLabel($category)) ?></option><?php endforeach; ?></select><span class="ms-auto small text-secondary" id="inventory-count"><?= count($products) ?> items</span></div>
-    <div class="table-responsive"><table class="table inventory-table align-middle mb-0"><thead><tr><th>Category</th><th>Item type</th><th>Serial / IMEI</th><th>Unit</th><th>Cost</th><th>Selling</th><th>VAT %</th><th>Selling incl. VAT</th><th>In stock</th><th></th></tr></thead><tbody id="inventory-rows">
+    <div class="table-responsive"><table class="table inventory-table align-middle mb-0"><thead><tr><th>Category</th><th>Item type</th><th>Serial / IMEI</th><th>Unit</th><th>Cost</th><th>Selling</th><th>VAT %</th><th>Selling incl. VAT</th><th>Reorder at</th><th>In stock</th><th></th></tr></thead><tbody id="inventory-rows">
     <?php foreach ($products as $product): $category = $product['item_category'] ?? 'Tracker'; $name = $product['item_type'] ?? $product['device_type'] ?? '—'; $stock = (int)($product['opening_stock'] ?? 0); $reorder = (int)($product['reorder_level'] ?? 0); $vatRate = (float)($product['vat_rate'] ?? 15); $selling = (float)($product['selling_price'] ?? 0); ?>
-    <tr data-category="<?= $esc($category) ?>" data-search="<?= $esc(strtolower($category.' '.$name.' '.($product['imei'] ?? ''))) ?>"><td><span class="inventory-category"><?= $esc($categoryLabel($category)) ?></span></td><td class="inventory-item"><?= $esc($name) ?></td><td><?= $esc(($product['imei'] ?? '') !== '' ? $product['imei'] : '—') ?></td><td><?= $esc($product['unit'] ?? 'pcs') ?></td><td>$<?= number_format((float)($product['cost_price'] ?? 0), 2) ?></td><td>$<?= number_format($selling, 2) ?></td><td><?= number_format($vatRate, 2) ?>%</td><td>$<?= number_format($selling * (1 + $vatRate / 100), 2) ?></td><td><span class="stock-pill <?= $stock <= $reorder ? 'low' : '' ?>"><?= number_format($stock) ?></span></td><td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=inventory&action=edit&id=<?= (int)$product['id'] ?>">Edit</a> <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=inventory&action=delete&id=<?= (int)$product['id'] ?>" data-confirm="Delete this product?">Delete</a></td></tr>
+    <tr data-category="<?= $esc($category) ?>" data-search="<?= $esc(strtolower($category.' '.$name.' '.($product['imei'] ?? ''))) ?>"><td><span class="inventory-category"><?= $esc($categoryLabel($category)) ?></span></td><td class="inventory-item"><?= $esc($name) ?></td><td><?= $esc(($product['imei'] ?? '') !== '' ? $product['imei'] : '—') ?></td><td><?= $esc($product['unit'] ?? 'pcs') ?></td><td>$<?= number_format((float)($product['cost_price'] ?? 0), 2) ?></td><td>$<?= number_format($selling, 2) ?></td><td><?= number_format($vatRate, 2) ?>%</td><td>$<?= number_format($selling * (1 + $vatRate / 100), 2) ?></td><td><?= number_format($reorderFor($product)) ?><?= $reorder > 0 ? '<small class="d-block text-secondary">item level</small>' : '<small class="d-block text-secondary">default</small>' ?></td><td><span class="stock-pill <?= $stock <= $reorderFor($product) ? 'low' : '' ?>"><?= number_format($stock) ?></span></td><td class="text-end text-nowrap"><a class="btn btn-sm btn-outline-secondary" href="/index.php?controller=inventory&action=edit&id=<?= (int)$product['id'] ?>">Edit</a> <a class="btn btn-sm btn-outline-danger" href="/index.php?controller=inventory&action=delete&id=<?= (int)$product['id'] ?>" data-confirm="Delete this product?">Delete</a></td></tr>
     <?php endforeach; ?>
     </tbody></table>
     <?php if (!$products): ?><div class="inventory-empty"><i class="fa-solid fa-box-open"></i><strong>No inventory items yet</strong><div>Add an item or use bulk add to enter several stock lines.</div><a class="btn btn-primary btn-sm mt-3" href="/index.php?controller=inventory&action=createBulk">Bulk add inventory</a></div><?php endif; ?>

@@ -3,6 +3,7 @@
 require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/User.php';
 require_once dirname(__DIR__) . '/helpers/mail.php';
+require_once dirname(__DIR__) . '/helpers/settings.php';
 
 class AuthController extends Controller
 {
@@ -30,20 +31,26 @@ class AuthController extends Controller
             if (!$this->validateCsrf()) {
                 $error = 'Invalid security token.';
             } else {
-                $user = $this->userModel->authenticate($email, $password);
-                if ($user) {
-                    session_regenerate_id(true);
-                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-                    $_SESSION['user'] = $user;
-                    $_SESSION['user']['logged_in_at'] = date('Y-m-d H:i:s');
-                    $this->redirect('/dashboard.php');
+                $maxAttempts = max(3, setting_int('max_login_attempts', 5));
+                if (($_SESSION['login_attempts'] ?? 0) >= $maxAttempts) {
+                    $error = 'Too many failed attempts. Please contact an administrator.';
+                } else {
+                    $user = $this->userModel->authenticate($email, $password);
+                    if ($user) {
+                        unset($_SESSION['login_attempts']);
+                        session_regenerate_id(true);
+                        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                        $_SESSION['user'] = $user;
+                        $_SESSION['user']['logged_in_at'] = date('Y-m-d H:i:s');
+                        $this->redirect('/dashboard.php');
+                    }
+                    $_SESSION['login_attempts'] = ($_SESSION['login_attempts'] ?? 0) + 1;
+                    $error = 'Invalid credentials';
                 }
-
-                $error = 'Invalid credentials';
             }
         }
 
-        $this->view('auth/login', ['title' => 'Login', 'error' => $error, 'registrationAllowed' => !empty($config['allow_registration'])]);
+        $this->view('auth/login', ['title' => 'Login', 'error' => $error, 'registrationAllowed' => setting_bool('allow_registration', !empty($config['allow_registration']))]);
     }
 
     public function logout(): void
@@ -72,7 +79,7 @@ class AuthController extends Controller
             $this->redirect('/dashboard.php');
         }
         $config = require dirname(__DIR__) . '/config/app.php';
-        if (empty($config['allow_registration'])) {
+        if (!setting_bool('allow_registration', !empty($config['allow_registration']))) {
             http_response_code(404);
             $this->view('errors/404', ['title' => 'Page not found']);
             return;
@@ -81,8 +88,8 @@ class AuthController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
                 $error = 'Invalid security token.';
-            } elseif (strlen((string) ($_POST['password'] ?? '')) < 12) {
-                $error = 'Password must be at least 12 characters.';
+            } elseif (strlen((string) ($_POST['password'] ?? '')) < setting_int('password_min_length', 12)) {
+                $error = 'Password must be at least ' . setting_int('password_min_length', 12) . ' characters.';
             } elseif ($this->userModel->findByEmail($this->sanitize($_POST['email'] ?? ''))) {
                 $error = 'An account with that email already exists.';
             } else {
@@ -107,7 +114,7 @@ class AuthController extends Controller
             if ($this->validateCsrf()) {
                 $email = strtolower(trim((string) ($_POST['email'] ?? '')));
                 $config = require dirname(__DIR__) . '/config/app.php';
-                $resetBaseUrl = (string) ($config['public_url'] ?? '');
+                $resetBaseUrl = setting_string('public_url', (string) ($config['public_url'] ?? ''));
                 $isSecureUrl = str_starts_with($resetBaseUrl, 'https://')
                     || ($config['environment'] !== 'production' && str_starts_with($resetBaseUrl, 'http://'));
                 if (filter_var($email, FILTER_VALIDATE_EMAIL) && $isSecureUrl) {
@@ -139,8 +146,8 @@ class AuthController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
                 $error = 'Your session expired. Reload the link and try again.';
-            } elseif (strlen((string) ($_POST['password'] ?? '')) < 12) {
-                $error = 'Choose a password with at least 12 characters.';
+            } elseif (strlen((string) ($_POST['password'] ?? '')) < setting_int('password_min_length', 12)) {
+                $error = 'Choose a password with at least ' . setting_int('password_min_length', 12) . ' characters.';
             } elseif (!hash_equals((string) ($_POST['password'] ?? ''), (string) ($_POST['password_confirmation'] ?? ''))) {
                 $error = 'The passwords do not match.';
             } else {
@@ -166,8 +173,8 @@ class AuthController extends Controller
                 $currentPassword = (string) ($_POST['current_password'] ?? '');
                 if (!$this->userModel->verifyPassword($userId, $currentPassword)) {
                     $message = 'Current password is incorrect.';
-                } elseif (strlen($password) < 12) {
-                    $message = 'Choose a password with at least 12 characters.';
+                } elseif (strlen($password) < setting_int('password_min_length', 12)) {
+                    $message = 'Choose a password with at least ' . setting_int('password_min_length', 12) . ' characters.';
                 } elseif (!hash_equals($password, (string) ($_POST['password_confirmation'] ?? ''))) {
                     $message = 'The passwords do not match.';
                 } else {

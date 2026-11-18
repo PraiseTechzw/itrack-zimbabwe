@@ -1,3 +1,5 @@
+<?php require_once dirname(__DIR__, 2) . '/helpers/settings.php'; ?>
+<?php $appName = setting_string('app_name', 'iTrack Zimbabwe'); $appTagline = setting_string('app_tagline', 'Operations platform'); ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0b1324">
-    <title><?= htmlspecialchars($title ?? 'iTrack Zimbabwe') ?></title>
+    <title><?= htmlspecialchars($title ?? $appName) ?></title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
@@ -162,9 +164,9 @@
     ?>
     <div class="auth-site">
         <header class="auth-header">
-            <a class="auth-brand" href="/login.php" aria-label="iTrack Zimbabwe home">
+            <a class="auth-brand" href="/login.php" aria-label="<?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> home">
                 <span class="brand-mark"><i class="fa-solid fa-route"></i></span>
-                <span><span class="auth-brand-name d-block">iTrack Zimbabwe</span><span class="auth-brand-subtitle d-block">Operations platform</span></span>
+                <span><span class="auth-brand-name d-block"><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></span><span class="auth-brand-subtitle d-block"><?= htmlspecialchars($appTagline, ENT_QUOTES, 'UTF-8') ?></span></span>
             </a>
             <div class="auth-header-note"><span><?= htmlspecialchars($authAction['prompt'], ENT_QUOTES, 'UTF-8') ?></span><a href="<?= htmlspecialchars($authAction['href'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($authAction['label'], ENT_QUOTES, 'UTF-8') ?> <i class="fa-solid fa-arrow-right ms-1"></i></a></div>
         </header>
@@ -181,7 +183,7 @@
             </section>
             <div class="auth-panel-wrap"><?= $contentBlock ?? '' ?></div>
         </main>
-        <footer class="auth-footer">© <?= date('Y') ?> iTrack Zimbabwe <span class="mx-2">·</span> Built for better operations</footer>
+        <footer class="auth-footer">© <?= date('Y') ?> <?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?> <span class="mx-2">·</span> Built for better operations</footer>
     </div>
 <?php else: ?>
 <div class="app-shell">

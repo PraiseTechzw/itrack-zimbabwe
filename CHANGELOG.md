@@ -4,6 +4,20 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Persistent **Settings** page with General, Company, Inventory & low-stock alerts, Notifications/email, Currency & VAT, Security & access, and system information sections. Values are stored in a new `app_settings` table and applied across the application.
+- Configurable **low-stock alerts**: a global default reorder level, per-item reorder levels on inventory forms, alert banners on Dashboard and Inventory, optional throttled email summaries, and a "send alert now" action.
+- Low-stock watch panel on the Settings page showing items at or below their effective reorder level.
+- `tests/settings.php` regression suite for settings persistence, threshold precedence and alert gating.
+
+### Changed
+
+- Reorder levels are now editable in single and bulk inventory screens; an item's own level overrides the configured default.
+- Application name, tagline, registration toggle, password rules, session lifetime, public URL, currency, VAT default, mail sender and company/invoice details are now driven by saved settings.
+
 ## [1.1.0] – 2026-11-18
 
 ### Added
@@ -17,6 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- All outgoing email (password resets and low-stock alerts) now sends through the Resend HTTP API instead of PHP's `mail()`. Configure it with `RESEND_API_KEY` and a verified `MAIL_FROM` address; the PHP `curl` extension is required.
 - Dashboard inventory value card is now labelled **Cost total**.
 - Camera-only installations no longer offer a device SIM line; only the camera SIM line applies.
 - SIM line identifiers are limited to 10 digits; FLS/camera serials remain numeric and hard-drive serials are alphanumeric.

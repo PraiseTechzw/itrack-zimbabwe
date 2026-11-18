@@ -40,7 +40,7 @@ The application uses a small MVC structure built with plain PHP classes and PDO.
 - **Sales** – sales capture and status visibility.
 - **Requisitions** – installation and other-item requests with requestor email, department, location, request and required dates, item descriptions and quantities, reason, amount, requestor/approver signatures, and optional dispatcher/receiver sign-off.
 - **Users** – staff accounts, roles, departments, and account status management.
-- **Settings** – application administration and configuration access.
+- **Settings** – full configuration suite (general, company, inventory alerts, email, currency/VAT and security) with configurable reorder thresholds and low-stock alerts on the dashboard and inventory.
 
 ### Accounting and reporting
 
@@ -113,6 +113,9 @@ DB_PASS=
 DB_SQLITE_PATH=/absolute/path/to/storage/itrack.sqlite
 
 UPLOAD_DIR=/absolute/path/to/uploads
+
+# Outgoing email (password resets and low-stock alerts) is sent via Resend.
+RESEND_API_KEY=
 MAIL_FROM=no-reply@example.com
 
 # Optional Reports assistant
@@ -125,6 +128,8 @@ Important configuration notes:
 - Set `APP_BASE_URL` to the path where the application is mounted. Use `/` when it is served at the domain root.
 - Set `APP_PUBLIC_URL` when generated links must use a complete public URL.
 - Set `APP_SESSION_SECURE=true` when the application is served over HTTPS.
+- Set `RESEND_API_KEY` to your Resend API key; all outgoing email is delivered through Resend. Without it, password-reset and low-stock emails cannot be sent.
+- Set `MAIL_FROM` to an address on a domain verified in Resend. The default `onboarding@resend.dev` is only for testing and can only deliver to your own Resend account address.
 - Disable public registration in production unless it is intentionally required.
 - Keep database credentials and API keys out of source control.
 - `DB_DRIVER=mysql` selects MySQL explicitly. The default `auto` mode uses the available PDO driver and falls back to SQLite when MySQL is unavailable.

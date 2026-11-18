@@ -6,6 +6,9 @@ require_once dirname(__DIR__) . '/models/Product.php';
 require_once dirname(__DIR__) . '/models/Client.php';
 require_once dirname(__DIR__) . '/models/GPSDevice.php';
 require_once dirname(__DIR__) . '/models/Permission.php';
+require_once dirname(__DIR__) . '/models/AppSetting.php';
+require_once dirname(__DIR__) . '/helpers/settings.php';
+require_once dirname(__DIR__) . '/services/LowStockAlerter.php';
 
 class DashboardController extends Controller
 {
@@ -52,12 +55,20 @@ class DashboardController extends Controller
 
         $role = $_SESSION['user']['role'] ?? 'Staff';
         $role = $role === 'admin' ? 'Administrator' : $role;
+        $settings = (new AppSetting())->all();
+        $reorderLevel = (int)($settings['default_reorder_level'] ?? 5);
+        $lowStockItems = setting_bool('low_stock_alerts_enabled')
+            ? $this->productModel->lowStockItems($reorderLevel, 8)
+            : [];
+        if (setting_bool('low_stock_alerts_enabled') && $lowStockItems !== []) {
+            LowStockAlerter::maybeSend($settings, $this->productModel->lowStockItems($reorderLevel, 50));
+        }
         $summary = [
             'users' => $this->userModel->dashboardSummary()['total_users'] ?? 0,
             'products' => $this->productModel->countProducts(),
             'clients' => $this->clientModel->countClients(),
             'gps_devices' => $this->gpsModel->countDevices(),
-            'low_stock' => $this->productModel->lowStockCount(),
+            'low_stock' => setting_bool('low_stock_alerts_enabled') ? $this->productModel->lowStockCount($reorderLevel) : 0,
             'inventory_value' => $this->productModel->inventoryValue(),
         ];
 
@@ -66,6 +77,8 @@ class DashboardController extends Controller
             'summary' => $summary,
             'modules' => $modules,
             'role' => $role,
+            'lowStockItems' => setting_bool('low_stock_show_dashboard') ? $lowStockItems : [],
+            'settingsUrl' => '/index.php?controller=settings',
         ]);
     }
 }

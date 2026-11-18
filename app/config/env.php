@@ -45,11 +45,19 @@ function loadEnv(): array
 
 function env(string $key, $default = null)
 {
+    // Real environment values (including test overrides) win over the .env file.
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+        return $_ENV[$key];
+    }
+    $value = getenv($key);
+    if ($value !== false && $value !== '') {
+        return $value;
+    }
+
     $vars = loadEnv();
     if (array_key_exists($key, $vars)) {
         return $vars[$key];
     }
 
-    $value = getenv($key);
-    return $value !== false ? $value : $default;
+    return $default;
 }

@@ -149,6 +149,19 @@ $workbook = (new XlsxReport())->build([
 ], 'Inventory');
 check('xlsx generated', strlen($workbook) > 100);
 
+// Outgoing email is built for Resend and validated before any network call.
+require_once dirname(__DIR__) . '/app/services/ResendMailer.php';
+$resendPayload = ResendMailer::payload('ops@example.com', 'no-reply@example.com', 'Low stock', "Line one\nLine two");
+check('resend payload has from/to/subject/text', is_array($resendPayload)
+    && $resendPayload['from'] === 'no-reply@example.com'
+    && $resendPayload['to'] === ['ops@example.com']
+    && $resendPayload['subject'] === 'Low stock'
+    && str_contains($resendPayload['text'], 'Line two'));
+check('resend payload rejects invalid recipient', ResendMailer::payload('not-an-email', 'no-reply@example.com', 'Subject', 'Body') === false);
+check('resend payload rejects header injection', ResendMailer::payload('ops@example.com', "no-reply@example.com\nBcc: evil@example.com", 'Subject', 'Body') === false);
+check('resend send fails without an API key', ResendMailer::send('ops@example.com', 'Subject', 'Body', 'no-reply@example.com', '') === false);
+check('resend failure exposes a useful hint', str_contains(ResendMailer::lastError(), 'RESEND_API_KEY'));
+
 @unlink($database);
 echo $failures === 0 ? "\nAll checks passed.\n" : "\n{$failures} check(s) failed.\n";
 exit($failures === 0 ? 0 : 1);

@@ -15,6 +15,7 @@
             <input id="reset-email" type="email" name="email" class="form-control" placeholder="you@company.com" autocomplete="email" required>
         </div>
         <button class="btn btn-primary w-100" type="submit">Send reset request <i class="fa-solid fa-arrow-right"></i></button>
+        <?php if (empty($message)): ?><p class="small text-secondary mb-0"><i class="fa-solid fa-envelope me-1" aria-hidden="true"></i>If an active account matches that address, reset instructions will be sent shortly.</p><?php endif; ?>
     </form>
     <p class="auth-panel-footer"><a href="/login.php"><i class="fa-solid fa-arrow-left me-1"></i> Back to sign in</a></p>
     <div class="auth-security-note"><i class="fa-solid fa-shield-halved"></i> We’ll help you get back into your account</div>

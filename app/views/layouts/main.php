@@ -157,10 +157,11 @@
 <?php if ($isPublicAuthPage): ?>
     <?php
     $authAction = [
-        'auth/login' => ['label' => 'Create account', 'href' => '/index.php?controller=auth&action=register', 'prompt' => 'New to iTrack?'],
+        'auth/login' => setting_bool('allow_registration') ? ['label' => 'Create account', 'href' => '/index.php?controller=auth&action=register', 'prompt' => 'New to iTrack?'] : null,
         'auth/register' => ['label' => 'Sign in', 'href' => '/login.php', 'prompt' => 'Already registered?'],
         'auth/forgot-password' => ['label' => 'Back to sign in', 'href' => '/login.php', 'prompt' => 'Remember your password?'],
-    ][$view];
+        'auth/reset-password' => ['label' => 'Back to sign in', 'href' => '/login.php', 'prompt' => 'Remember your password?'],
+    ][$view] ?? null;
     ?>
     <div class="auth-site">
         <header class="auth-header">
@@ -168,7 +169,7 @@
                 <span class="brand-mark"><i class="fa-solid fa-route"></i></span>
                 <span><span class="auth-brand-name d-block"><?= htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') ?></span><span class="auth-brand-subtitle d-block"><?= htmlspecialchars($appTagline, ENT_QUOTES, 'UTF-8') ?></span></span>
             </a>
-            <div class="auth-header-note"><span><?= htmlspecialchars($authAction['prompt'], ENT_QUOTES, 'UTF-8') ?></span><a href="<?= htmlspecialchars($authAction['href'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($authAction['label'], ENT_QUOTES, 'UTF-8') ?> <i class="fa-solid fa-arrow-right ms-1"></i></a></div>
+            <?php if ($authAction): ?><div class="auth-header-note"><span><?= htmlspecialchars($authAction['prompt'], ENT_QUOTES, 'UTF-8') ?></span><a href="<?= htmlspecialchars($authAction['href'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($authAction['label'], ENT_QUOTES, 'UTF-8') ?> <i class="fa-solid fa-arrow-right ms-1"></i></a></div><?php endif; ?>
         </header>
         <main class="auth-main">
             <section class="auth-story" aria-label="About iTrack Zimbabwe">

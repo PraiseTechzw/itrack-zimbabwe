@@ -4,7 +4,7 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.1] - 2026-11-18
 
 ### Added
 
@@ -12,11 +12,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Configurable **low-stock alerts**: a global default reorder level, per-item reorder levels on inventory forms, alert banners on Dashboard and Inventory, optional throttled email summaries, and a "send alert now" action.
 - Low-stock watch panel on the Settings page showing items at or below their effective reorder level.
 - `tests/settings.php` regression suite for settings persistence, threshold precedence and alert gating.
+- `MAIL_FROM_NAME`, `MAIL_DOMAIN` and `LOW_STOCK_*` environment defaults; a bare domain in `MAIL_FROM` is converted to `no-reply@domain`.
+- Branded HTML email templates with plain-text alternatives for password resets and low-stock alerts; Resend payloads now include both `html` and `text`.
+- Working staff self-registration: validated name, email, password and confirmation, with a success notice and immediate access to the Staff role's modules.
 
 ### Changed
 
 - Reorder levels are now editable in single and bulk inventory screens; an item's own level overrides the configured default.
 - Application name, tagline, registration toggle, password rules, session lifetime, public URL, currency, VAT default, mail sender and company/invoice details are now driven by saved settings.
+- Settings with an environment counterpart now use the `.env` value as their default until a value is saved on the Settings screen.
+- Staff registration is enabled by default for local setups (respecting `APP_ALLOW_REGISTRATION`) and the sign-up link is hidden everywhere — including the sign-in header — as soon as it is switched off in Settings; direct access to the register page returns 404.
+
+### Fixed
+
+- Environment values for settings such as `MAIL_FROM` and `APP_PUBLIC_URL` were ignored because built-in defaults always won.
+- Resend sender validation now accepts display names (`Name <email>`) while rejecting header injection.
+- The Settings form shows the effective sender address, so a domain configured via `.env` no longer blocks saving alert recipients.
+- Sender addresses stay valid in the Settings form even when a display name is configured; the display name is applied only to outgoing mail.
+- Low-stock alert emails now honour a Public URL saved on the Settings screen, matching password-reset links.
 
 ## [1.1.0] – 2026-11-18
 

@@ -78,6 +78,15 @@ check('low stock count uses effective threshold', $products->lowStockCount(4) ==
 $settings->save(['low_stock_last_sent_at' => date('c')]);
 check('throttle blocks immediate resend', LowStockAlerter::shouldSend($settings->all()) === false);
 
+$priorRegistrationEnv = $_ENV['APP_ALLOW_REGISTRATION'] ?? null;
+$_ENV['APP_ALLOW_REGISTRATION'] = 'false';
+check('registration default respects explicit env override', AppSetting::defaults()['allow_registration'] === false);
+if ($priorRegistrationEnv === null) unset($_ENV['APP_ALLOW_REGISTRATION']); else $_ENV['APP_ALLOW_REGISTRATION'] = $priorRegistrationEnv;
+$settings->save(['allow_registration' => '1']);
+check('registration can be enabled in settings', (string) $settings->all()['allow_registration'] === '1');
+$settings->save(['allow_registration' => '0']);
+check('registration can be hidden in settings', (string) $settings->all()['allow_registration'] === '0');
+
 @unlink($database);
 echo $failures === 0 ? "\nAll settings checks passed.\n" : "\n{$failures} settings check(s) failed.\n";
 exit($failures === 0 ? 0 : 1);

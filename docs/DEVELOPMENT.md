@@ -8,7 +8,7 @@
 - [`app/views`](../app/views) – server-rendered presentation templates
 - [`app/core`](../app/core) – router, controller, model, database, session, and security components
 - [`app/helpers`](../app/helpers) – authentication, permissions, validation, formatting, uploads, notifications, and responses
-- [`app/services`](../app/services) – report formatting, PDF/XLSX exports, and optional insights
+- [`app/services`](../app/services) – report formatting, PDF/XLSX exports, optional insights, Resend delivery, and branded email templates
 - [`public`](../public) – browser entry points and public API copies
 - [`database`](../database) – schema, seed data, migrations, and backup guidance
 - [`storage`](../storage) – writable runtime files and generated exports

@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/models/AppSetting.php';
 require_once dirname(__DIR__) . '/models/Product.php';
 require_once dirname(__DIR__) . '/services/LowStockAlerter.php';
 require_once dirname(__DIR__) . '/helpers/settings.php';
+require_once dirname(__DIR__) . '/helpers/mail.php';
 
 class SettingsController extends Controller
 {
@@ -24,6 +25,9 @@ class SettingsController extends Controller
     private function viewData(AppSetting $settingsModel): array
     {
         $settings = $settingsModel->all();
+        // Show the effective sender so a domain configured via .env is editable
+        // and passes the email validation when the form is saved.
+        $settings['mail_from'] = mailSenderEmail();
         $config = require dirname(__DIR__) . '/config/app.php';
         try {
             $driver = Database::getInstance()->getAttribute(PDO::ATTR_DRIVER_NAME);

@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/core/Controller.php';
 require_once dirname(__DIR__) . '/models/User.php';
 require_once dirname(__DIR__) . '/helpers/mail.php';
 require_once dirname(__DIR__) . '/helpers/settings.php';
+require_once dirname(__DIR__) . '/services/EmailTemplate.php';
 
 class AuthController extends Controller
 {
@@ -50,7 +51,14 @@ class AuthController extends Controller
             }
         }
 
-        $this->view('auth/login', ['title' => 'Login', 'error' => $error, 'registrationAllowed' => setting_bool('allow_registration', !empty($config['allow_registration']))]);
+        $notice = trim((string) ($_SESSION['registration_success'] ?? ''));
+        unset($_SESSION['registration_success']);
+        $this->view('auth/login', [
+            'title' => 'Login',
+            'error' => $error,
+            'notice' => $notice,
+            'registrationAllowed' => setting_bool('allow_registration', !empty($config['allow_registration'])),
+        ]);
     }
 
     public function logout(): void
@@ -86,21 +94,34 @@ class AuthController extends Controller
         }
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = $this->sanitize($_POST['name'] ?? '');
+            $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+            $department = $this->sanitize($_POST['department'] ?? 'General');
+            $password = (string) ($_POST['password'] ?? '');
+            $confirmation = (string) ($_POST['password_confirmation'] ?? '');
+            $minimum = setting_int('password_min_length', 12);
             if (!$this->validateCsrf()) {
                 $error = 'Invalid security token.';
-            } elseif (strlen((string) ($_POST['password'] ?? '')) < setting_int('password_min_length', 12)) {
-                $error = 'Password must be at least ' . setting_int('password_min_length', 12) . ' characters.';
-            } elseif ($this->userModel->findByEmail($this->sanitize($_POST['email'] ?? ''))) {
+            } elseif (strlen($name) < 2 || strlen($name) > 150) {
+                $error = 'Enter your full name (2 to 150 characters).';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = 'Enter a valid email address.';
+            } elseif (strlen($password) < $minimum) {
+                $error = 'Password must be at least ' . $minimum . ' characters.';
+            } elseif (!hash_equals($password, $confirmation)) {
+                $error = 'The passwords do not match.';
+            } elseif ($this->userModel->findByEmail($email)) {
                 $error = 'An account with that email already exists.';
             } else {
                 $this->userModel->create([
-                    'name' => $this->sanitize($_POST['name'] ?? ''),
-                    'email' => $this->sanitize($_POST['email'] ?? ''),
-                    'password' => (string) ($_POST['password'] ?? ''),
+                    'name' => $name,
+                    'email' => $email,
+                    'password' => $password,
                     'role' => 'Staff',
-                    'department' => $this->sanitize($_POST['department'] ?? 'General'),
+                    'department' => $department !== '' ? $department : 'General',
                     'status' => 'active',
                 ]);
+                $_SESSION['registration_success'] = 'Your staff account is ready. Sign in to start working.';
                 $this->redirect('/login.php');
             }
         }
@@ -121,7 +142,11 @@ class AuthController extends Controller
                     $token = $this->userModel->createPasswordResetToken($email);
                     if ($token !== null) {
                         $resetLink = $resetBaseUrl . '/index.php?controller=auth&action=resetPassword&token=' . urlencode($token);
-                        $sent = sendMail($email, 'Reset your iTrack password', "A password reset was requested for your iTrack account.\n\nUse this link within one hour:\n{$resetLink}\n\nIf you did not request a reset, ignore this message.");
+                        $template = EmailTemplate::passwordReset(
+                            setting_string('app_name', (string) ($config['app_name'] ?? 'iTrack Zimbabwe')),
+                            $resetLink
+                        );
+                        $sent = sendMail($email, $template['subject'], $template['text'], $template['html']);
                         if (!$sent) $this->userModel->removePasswordResetTokensForEmail($email);
                     }
                 } else {

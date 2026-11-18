@@ -97,7 +97,7 @@ APP_NAME="iTrack Zimbabwe"
 APP_ENV=development
 APP_DEBUG=false
 APP_BASE_URL=/itrack-zimbabwe
-APP_PUBLIC_URL=
+APP_PUBLIC_URL=http://127.0.0.1:8000
 APP_ALLOW_REGISTRATION=true
 APP_SESSION_SECURE=false
 SESSION_NAME=itrack_session
@@ -117,6 +117,14 @@ UPLOAD_DIR=/absolute/path/to/uploads
 # Outgoing email (password resets and low-stock alerts) is sent via Resend.
 RESEND_API_KEY=
 MAIL_FROM=no-reply@example.com
+MAIL_FROM_NAME="iTrack Zimbabwe"
+MAIL_DOMAIN=example.com
+
+# Low-stock alerts (the Settings screen overrides these once values are saved).
+LOW_STOCK_ALERTS_ENABLED=true
+LOW_STOCK_EMAIL_ENABLED=true
+LOW_STOCK_EMAIL_RECIPIENTS=
+LOW_STOCK_EMAIL_INTERVAL_HOURS=24
 
 # Optional Reports assistant
 OPENROUTER_API_KEY=
@@ -129,7 +137,10 @@ Important configuration notes:
 - Set `APP_PUBLIC_URL` when generated links must use a complete public URL.
 - Set `APP_SESSION_SECURE=true` when the application is served over HTTPS.
 - Set `RESEND_API_KEY` to your Resend API key; all outgoing email is delivered through Resend. Without it, password-reset and low-stock emails cannot be sent.
-- Set `MAIL_FROM` to an address on a domain verified in Resend. The default `onboarding@resend.dev` is only for testing and can only deliver to your own Resend account address.
+- `MAIL_FROM` accepts a full address or just a verified domain (for example `example.com`, which becomes `no-reply@example.com`). `MAIL_FROM_NAME` sets the display name and `MAIL_DOMAIN` is used as a fallback domain.
+- The default `onboarding@resend.dev` is only for testing and can only deliver to your own Resend account address.
+- Set `APP_PUBLIC_URL` to the absolute URL used in password-reset links (for local development, `http://127.0.0.1:8000` with `php -S 127.0.0.1:8000 -t public`). Reset links are disabled while it is empty.
+- Add low-stock alert recipients on the Settings screen or via `LOW_STOCK_EMAIL_RECIPIENTS`; alerts do not send with an empty recipient list. Settings saved on screen override the environment defaults.
 - Disable public registration in production unless it is intentionally required.
 - Keep database credentials and API keys out of source control.
 - `DB_DRIVER=mysql` selects MySQL explicitly. The default `auto` mode uses the available PDO driver and falls back to SQLite when MySQL is unavailable.
@@ -323,7 +334,7 @@ app/
   helpers/       Authentication, permissions, validation, formatting, uploads, and responses
   middleware/    Authentication, administrator, and permission middleware
   models/        Database models and domain operations
-  services/      Report formatting, PDF/XLSX generation, and optional AI insights
+  services/      Report formatting, PDF/XLSX generation, optional AI insights, Resend delivery, and branded email templates
   views/         Server-rendered PHP views
 public/          Web document root and public entry points
 api/             API entry points for direct Apache deployments

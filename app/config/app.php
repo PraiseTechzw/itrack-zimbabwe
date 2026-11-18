@@ -11,10 +11,17 @@ return [
     'session_secure' => filter_var(env('APP_SESSION_SECURE', false), FILTER_VALIDATE_BOOLEAN),
     // Resend: set RESEND_API_KEY in .env (or the server environment).
     'resend_api_key' => (string) env('RESEND_API_KEY', ''),
-    // Use a verified domain in production; onboarding@resend.dev is Resend's test sender.
+    // MAIL_FROM accepts a full address or just a verified domain (no-reply@ is added).
     'mail_from' => env('MAIL_FROM', 'onboarding@resend.dev'),
+    'mail_from_name' => env('MAIL_FROM_NAME', env('APP_NAME', 'iTrack Zimbabwe')),
+    'mail_domain' => (string) env('MAIL_DOMAIN', ''),
     'public_url' => rtrim((string) env('APP_PUBLIC_URL', ''), '/'),
     'debug' => filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN),
+    // Low-stock alerts can be configured here or on the Settings screen.
+    'low_stock_alerts_enabled' => filter_var(env('LOW_STOCK_ALERTS_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    'low_stock_email_enabled' => filter_var(env('LOW_STOCK_EMAIL_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    'low_stock_email_recipients' => (string) env('LOW_STOCK_EMAIL_RECIPIENTS', ''),
+    'low_stock_email_interval_hours' => max(1, (int) env('LOW_STOCK_EMAIL_INTERVAL_HOURS', 24)),
     'base_url' => env('APP_BASE_URL', '/itrack-zimbabwe'),
     'db' => [
         'host' => env('DB_HOST', '127.0.0.1'),

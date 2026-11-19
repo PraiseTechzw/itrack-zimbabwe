@@ -30,16 +30,27 @@ INSERT INTO gps_devices (device_name, imei, serial, sim_number, status) VALUES
 ('Tracker B2', '987654321098765', 'SN-B2002', '0712345679', 'available')
 ON DUPLICATE KEY UPDATE imei=VALUES(imei), serial=VALUES(serial);
 
-INSERT INTO products (category_id, name, sku, unit, cost_price, selling_price, opening_stock, reorder_level, status) VALUES
-(1, 'Laptop', 'LT001', 'pcs', 800.00, 950.00, 5, 2, 'active'),
-(2, 'GPS Tracker', 'GPS001', 'pcs', 120.00, 150.00, 12, 3, 'active'),
-(3, 'Office Chair', 'OC001', 'pcs', 45.00, 60.00, 20, 5, 'active')
-ON DUPLICATE KEY UPDATE sku=VALUES(sku), name=VALUES(name), cost_price=VALUES(cost_price), selling_price=VALUES(selling_price);
+-- Every inventory row is one physical device. Each product carries a unique
+-- identifier in imei (also used as the sku, matching Product::create()) and a
+-- valid item_category/item_type so it can be selected for installations. All
+-- five stockable categories are represented so none are missing from a fresh DB.
+INSERT INTO products (category_id, name, sku, imei, sim_number, device_type, item_category, item_type, unit, cost_price, selling_price, vat_rate, opening_stock, reorder_level, status) VALUES
+(2, 'Teltonika FMB920', '123456789012345', '123456789012345', NULL, 'Teltonika FMB920', 'Tracker', 'Teltonika FMB920', 'pcs', 800.00, 950.00, 15.000, 1, 1, 'active'),
+(2, 'Escort', '111222', '111222', NULL, 'Escort', 'FLS', 'Escort', 'pcs', 120.00, 150.00, 15.000, 1, 1, 'active'),
+(2, 'IVMS', '333444', '333444', NULL, 'IVMS', 'Cameras', 'IVMS', 'pcs', 45.00, 60.00, 15.000, 1, 1, 'active'),
+(2, 'Galileosky 7x', '987654321098765', '987654321098765', NULL, 'Galileosky 7x', 'Tracker', 'Galileosky 7x', 'pcs', 150.00, 190.00, 15.000, 1, 1, 'active'),
+(2, 'Hard drive', 'HD-A1001', 'HD-A1001', NULL, 'Hard drive', 'Hard drives', 'Hard drive', 'pcs', 35.00, 50.00, 15.000, 1, 1, 'active'),
+(2, 'Econet', '0771234567', '0771234567', '0771234567', 'Econet', 'Sim cards', 'Econet', 'pcs', 5.00, 10.00, 15.000, 1, 1, 'active')
+ON DUPLICATE KEY UPDATE name=VALUES(name), imei=VALUES(imei), device_type=VALUES(device_type), item_category=VALUES(item_category), item_type=VALUES(item_type), vat_rate=VALUES(vat_rate), cost_price=VALUES(cost_price), selling_price=VALUES(selling_price), opening_stock=VALUES(opening_stock), reorder_level=VALUES(reorder_level), status=VALUES(status);
 
+-- One stock unit per physical device, matching opening_stock above.
 INSERT INTO stocks (product_id, location, quantity) VALUES
-(1, 'Main Warehouse', 5),
-(2, 'Main Warehouse', 12),
-(3, 'Main Warehouse', 20)
+(1, 'Main Warehouse', 1),
+(2, 'Main Warehouse', 1),
+(3, 'Main Warehouse', 1),
+(4, 'Main Warehouse', 1),
+(5, 'Main Warehouse', 1),
+(6, 'Main Warehouse', 1)
 ON DUPLICATE KEY UPDATE quantity=VALUES(quantity);
 
 INSERT INTO purchase_orders (supplier_id, ordered_by, order_date, status, total_amount, remarks) VALUES

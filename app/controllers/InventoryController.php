@@ -150,14 +150,15 @@ class InventoryController extends Controller
                 $type = trim((string)($row['item_type'] ?? ''));
                 $identifier = trim((string)($row['identifier'] ?? ''));
                 $needsIdentifier = (bool) Product::identifierRules($category)['required'];
-                $quantity = (int)($row['quantity'] ?? 0);
+                // Every row is one physical device, regardless of any submitted quantity.
+                $row['quantity'] = 1;
+                $quantity = 1;
                 try {
                     $vatRate = Product::vatRate($row['vat_rate'] ?? null);
                 } catch (InvalidArgumentException) {
                     $vatRate = -1.0;
                 }
-                if (!in_array($type, $types[$category] ?? [], true) || $quantity < 1
-                    || ($needsIdentifier && $quantity !== 1) || ($identifier !== '' && $quantity !== 1)
+                if (!in_array($type, $types[$category] ?? [], true)
                     || Product::identifierError($category, $identifier) !== null
                     || ($identifier !== '' && (isset($identifiers[$identifier]) || $this->productModel->imeiExists($identifier)))
                     || !is_numeric($row['cost_price'] ?? 0) || !is_numeric($row['selling_price'] ?? 0)
@@ -170,7 +171,7 @@ class InventoryController extends Controller
             }
             unset($row);
             if (!$valid) {
-                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–' . $maximumRows . ' valid rows. FLS, cameras, hard drives, and SIM lines require a unique identifier and quantity 1. SIM lines are limited to 10 digits. Use valid prices and a VAT rate between 0 and 100.']);
+                $this->view('inventory/bulk', ['itemTypes' => $types, 'rows' => $_POST['items'] ?? [], 'error' => 'Add 1–' . $maximumRows . ' valid rows. Each row is one device. FLS, cameras, hard drives, and SIM lines require a unique identifier. SIM lines are limited to 10 digits. Use valid prices and a VAT rate between 0 and 100.']);
                 return;
             }
             $this->productModel->createMany($rows, []);

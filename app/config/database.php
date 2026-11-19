@@ -451,14 +451,22 @@ class Database
         $pdo->exec("INSERT OR IGNORE INTO gps_devices (device_name, imei, serial, sim_number, status) VALUES
             ('Tracker A1', '123456789012345', 'SN-A1001', '0712345678', 'installed'),
             ('Tracker B2', '987654321098765', 'SN-B2002', '0712345679', 'available')");
-        $pdo->exec("INSERT OR IGNORE INTO products (category_id, name, sku, unit, cost_price, selling_price, opening_stock, reorder_level, status) VALUES
-            (1, 'Laptop', 'LT001', 'pcs', 800.00, 950.00, 5, 2, 'active'),
-            (2, 'GPS Tracker', 'GPS001', 'pcs', 120.00, 150.00, 12, 3, 'active'),
-            (3, 'Office Chair', 'OC001', 'pcs', 45.00, 60.00, 20, 5, 'active')");
+        // Each inventory row is one physical device with a unique identifier.
+        // Seed all five stockable categories so none are missing from a fresh DB.
+        $pdo->exec("INSERT OR IGNORE INTO products (category_id, name, sku, imei, sim_number, device_type, item_category, item_type, unit, cost_price, selling_price, vat_rate, opening_stock, reorder_level, status) VALUES
+            (2, 'Teltonika FMB920', '123456789012345', '123456789012345', NULL, 'Teltonika FMB920', 'Tracker', 'Teltonika FMB920', 'pcs', 800.00, 950.00, 15, 1, 1, 'active'),
+            (2, 'Escort', '111222', '111222', NULL, 'Escort', 'FLS', 'Escort', 'pcs', 120.00, 150.00, 15, 1, 1, 'active'),
+            (2, 'IVMS', '333444', '333444', NULL, 'IVMS', 'Cameras', 'IVMS', 'pcs', 45.00, 60.00, 15, 1, 1, 'active'),
+            (2, 'Galileosky 7x', '987654321098765', '987654321098765', NULL, 'Galileosky 7x', 'Tracker', 'Galileosky 7x', 'pcs', 150.00, 190.00, 15, 1, 1, 'active'),
+            (2, 'Hard drive', 'HD-A1001', 'HD-A1001', NULL, 'Hard drive', 'Hard drives', 'Hard drive', 'pcs', 35.00, 50.00, 15, 1, 1, 'active'),
+            (2, 'Econet', '0771234567', '0771234567', '0771234567', 'Econet', 'Sim cards', 'Econet', 'pcs', 5.00, 10.00, 15, 1, 1, 'active')");
         $pdo->exec("INSERT OR IGNORE INTO stocks (product_id, location, quantity) VALUES
-            (1, 'Main Warehouse', 5),
-            (2, 'Main Warehouse', 12),
-            (3, 'Main Warehouse', 20)");
+            (1, 'Main Warehouse', 1),
+            (2, 'Main Warehouse', 1),
+            (3, 'Main Warehouse', 1),
+            (4, 'Main Warehouse', 1),
+            (5, 'Main Warehouse', 1),
+            (6, 'Main Warehouse', 1)");
         $pdo->exec("INSERT OR IGNORE INTO purchase_orders (supplier_id, ordered_by, order_date, status, total_amount, remarks) VALUES
             (1, 1, DATE('now'), 'pending', 2600.00, 'Initial stock replenishment'),
             (2, 1, DATE('now'), 'pending', 600.00, 'GPS device restock')");

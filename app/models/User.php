@@ -6,8 +6,9 @@ class User extends Model
 {
     public function authenticate(string $email, string $password): ?array
     {
-        $sql = "SELECT * FROM users WHERE email = :email AND status = 'active' LIMIT 1";
-        $user = $this->fetchOne($sql, [':email' => $email]);
+        // Emails are stored lower-cased; LOWER() also keeps legacy rows reachable.
+        $sql = "SELECT * FROM users WHERE LOWER(email) = :email AND status = 'active' LIMIT 1";
+        $user = $this->fetchOne($sql, [':email' => strtolower(trim($email))]);
         if (!$user || !password_verify($password, $user['password_hash'])) return null;
 
         unset($user['password_hash']);
@@ -19,7 +20,7 @@ class User extends Model
         $sql = 'INSERT INTO users (name, email, password_hash, role, department, status, created_at) VALUES (:name, :email, :password_hash, :role, :department, :status, CURRENT_TIMESTAMP)';
         $this->execute($sql, [
             ':name' => $data['name'],
-            ':email' => $data['email'],
+            ':email' => strtolower(trim((string) $data['email'])),
             ':password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
             ':role' => $data['role'],
             ':department' => $data['department'] ?? 'General',
@@ -50,7 +51,7 @@ class User extends Model
 
     public function findByEmail(string $email): ?array
     {
-        return $this->fetchOne('SELECT * FROM users WHERE email = :email LIMIT 1', [':email' => $email]);
+        return $this->fetchOne('SELECT * FROM users WHERE LOWER(email) = :email LIMIT 1', [':email' => strtolower(trim($email))]);
     }
 
     public function update(int $id, array $data): void
@@ -61,7 +62,7 @@ class User extends Model
             $values[$field] = trim((string) ($data[$field] ?? ''));
         }
         $sql = 'UPDATE users SET name=:name, email=:email, role=:role, department=:department, status=:status';
-        $params = [':name'=>$values['name'], ':email'=>$values['email'], ':role'=>$values['role'], ':department'=>$values['department'] ?: 'General', ':status'=>$values['status'] ?: 'active', ':id'=>$id];
+        $params = [':name'=>$values['name'], ':email'=>strtolower($values['email']), ':role'=>$values['role'], ':department'=>$values['department'] ?: 'General', ':status'=>$values['status'] ?: 'active', ':id'=>$id];
         if (trim((string) ($data['password'] ?? '')) !== '') {
             $sql .= ', password_hash=:password_hash';
             $params[':password_hash'] = password_hash((string) $data['password'], PASSWORD_DEFAULT);
@@ -84,7 +85,7 @@ class User extends Model
 
     public function createPasswordResetToken(string $email): ?string
     {
-        $user = $this->fetchOne("SELECT id FROM users WHERE email = :email AND status = 'active' LIMIT 1", [':email' => $email]);
+        $user = $this->fetchOne("SELECT id FROM users WHERE LOWER(email) = :email AND status = 'active' LIMIT 1", [':email' => strtolower(trim($email))]);
         if (!$user) return null;
 
         $token = bin2hex(random_bytes(32));
@@ -95,7 +96,17 @@ class User extends Model
 
     public function removePasswordResetTokensForEmail(string $email): void
     {
-        $this->execute('DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE email = ?)', [$email]);
+        $this->execute('DELETE FROM password_reset_tokens WHERE user_id IN (SELECT id FROM users WHERE LOWER(email) = ?)', [strtolower(trim($email))]);
+    }
+
+    /** True only when the token exists, is well formed and has not expired. */
+    public function isValidPasswordResetToken(string $token): bool
+    {
+        if (preg_match('/^[a-f0-9]{64}$/D', $token) !== 1) return false;
+        return $this->fetchOne(
+            'SELECT id FROM password_reset_tokens WHERE token_hash = ? AND expires_at > ? LIMIT 1',
+            [hash('sha256', $token), gmdate('Y-m-d H:i:s')]
+        ) !== null;
     }
 
     public function resetPassword(string $token, string $password): bool

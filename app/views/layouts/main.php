@@ -136,6 +136,12 @@
         .auth-field .form-control { min-height:47px; padding:12px 13px; border-color:#e1e6ef; border-radius:10px; color:#182238; font-size:13px; }
         .auth-field .form-control::placeholder { color:#a0aabc; }
         .auth-field .form-control:focus { border-color:#938cf5; box-shadow:0 0 0 4px rgba(99,102,241,.11); }
+        .auth-password-field { position:relative; }
+        .auth-password-field .form-control { padding-right:46px; }
+        .auth-password-toggle { position:absolute; top:0; right:0; width:46px; height:47px; display:grid; place-items:center; border:0; background:transparent; color:#8a96a8; cursor:pointer; }
+        .auth-password-toggle:hover { color:var(--brand); }
+        .auth-password-toggle:focus-visible { outline:2px solid var(--brand); outline-offset:-2px; border-radius:10px; }
+        .auth-password-hint { display:block; margin-top:7px; color:#8a96a8; font-size:11px; }
         .auth-form .btn { min-height:47px; margin-top:2px; font-size:13px; }
         .auth-form .btn i { margin-left:7px; font-size:11px; }
         .auth-form-meta { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:-3px; color:#707d91; font-size:12px; }

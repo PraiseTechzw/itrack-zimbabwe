@@ -98,8 +98,12 @@ class Controller
     protected function validateCsrf(): bool
     {
         $this->ensureSession();
-        $token = $_POST['csrf_token'] ?? '';
-        return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+        $token = (string) ($_POST['csrf_token'] ?? '');
+        $expected = (string) ($_SESSION['csrf_token'] ?? '');
+        // Two empty strings must never compare equal — that would accept a POST
+        // from a session that never rendered a form (e.g. a forged reset request).
+        if ($token === '' || $expected === '') return false;
+        return hash_equals($expected, $token);
     }
 
     protected function sanitize(string $value): string

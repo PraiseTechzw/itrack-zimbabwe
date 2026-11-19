@@ -167,24 +167,45 @@ class AuthController extends Controller
         $token = trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
         $success = false;
         $error = '';
+        $showForm = false;
+        $minLength = setting_int('password_min_length', 12);
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$this->validateCsrf()) {
                 $error = 'Your session expired. Reload the link and try again.';
-            } elseif (strlen((string) ($_POST['password'] ?? '')) < setting_int('password_min_length', 12)) {
-                $error = 'Choose a password with at least ' . setting_int('password_min_length', 12) . ' characters.';
+                $showForm = true;
+            } elseif (!$this->userModel->isValidPasswordResetToken($token)) {
+                $error = 'This reset link is invalid or has expired. Request a new one.';
+            } elseif (strlen((string) ($_POST['password'] ?? '')) < $minLength) {
+                $error = 'Choose a password with at least ' . $minLength . ' characters.';
+                $showForm = true;
             } elseif (!hash_equals((string) ($_POST['password'] ?? ''), (string) ($_POST['password_confirmation'] ?? ''))) {
                 $error = 'The passwords do not match.';
+                $showForm = true;
             } else {
                 $success = $this->userModel->resetPassword($token, (string) $_POST['password']);
-                if (!$success) $error = 'This reset link is invalid or has expired. Request a new one.';
+                if ($success) {
+                    session_regenerate_id(true);
+                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                } else {
+                    $error = 'This reset link is invalid or has expired. Request a new one.';
+                }
             }
+        } elseif ($this->userModel->isValidPasswordResetToken($token)) {
+            // Opening a valid link must show the form, never a success message.
+            $showForm = true;
         } else {
-            $success = preg_match('/^[a-f0-9]{64}$/D', $token) === 1;
-            if (!$success) $error = 'This reset link is invalid or has expired. Request a new one.';
+            $error = 'This reset link is invalid or has expired. Request a new one.';
         }
 
-        $this->view('auth/reset-password', ['title' => 'Choose a new password', 'token' => $token, 'success' => $success, 'error' => $error]);
+        $this->view('auth/reset-password', [
+            'title' => 'Choose a new password',
+            'token' => $token,
+            'success' => $success,
+            'error' => $error,
+            'showForm' => $showForm,
+            'minLength' => $minLength,
+        ]);
     }
 
     public function changePassword(): void

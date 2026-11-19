@@ -462,7 +462,10 @@ class Database
             (2, 'Galileosky 7x', '987654321098765', '987654321098765', NULL, 'Galileosky 7x', 'Tracker', 'Galileosky 7x', 'pcs', 150.00, 190.00, 15, 1, 1, 'active'),
             (2, 'Hard drive', 'HD-A1001', 'HD-A1001', NULL, 'Hard drive', 'Hard drives', 'Hard drive', 'pcs', 35.00, 50.00, 15, 1, 1, 'active'),
             (2, 'Econet', '0771234567', '0771234567', '0771234567', 'Econet', 'Sim cards', 'Econet', 'pcs', 5.00, 10.00, 15, 1, 1, 'active')");
-        $pdo->exec("INSERT OR IGNORE INTO stocks (product_id, location, quantity) VALUES
+        // stocks has no UNIQUE(product_id, location), so INSERT OR IGNORE cannot
+        // dedupe. Clear the seeded rows first to keep this block re-runnable.
+        $pdo->exec("DELETE FROM stocks WHERE product_id BETWEEN 1 AND 6 AND location = 'Main Warehouse'");
+        $pdo->exec("INSERT INTO stocks (product_id, location, quantity) VALUES
             (1, 'Main Warehouse', 1),
             (2, 'Main Warehouse', 1),
             (3, 'Main Warehouse', 1),

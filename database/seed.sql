@@ -47,14 +47,17 @@ INSERT INTO products (category_id, name, sku, imei, sim_number, device_type, ite
 ON DUPLICATE KEY UPDATE name=VALUES(name), imei=VALUES(imei), device_type=VALUES(device_type), item_category=VALUES(item_category), item_type=VALUES(item_type), vat_rate=VALUES(vat_rate), cost_price=VALUES(cost_price), selling_price=VALUES(selling_price), opening_stock=VALUES(opening_stock), reorder_level=VALUES(reorder_level), status=VALUES(status);
 
 -- One stock unit per physical device, matching opening_stock above.
+-- stocks has no UNIQUE key on (product_id, location), so ON DUPLICATE KEY
+-- UPDATE can never fire here and re-running the seed would insert duplicates.
+-- Clear the seeded rows first so this block stays idempotent on any MySQL/MariaDB.
+DELETE FROM stocks WHERE product_id BETWEEN 1 AND 6 AND location = 'Main Warehouse';
 INSERT INTO stocks (product_id, location, quantity) VALUES
 (1, 'Main Warehouse', 1),
 (2, 'Main Warehouse', 1),
 (3, 'Main Warehouse', 1),
 (4, 'Main Warehouse', 1),
 (5, 'Main Warehouse', 1),
-(6, 'Main Warehouse', 1)
-ON DUPLICATE KEY UPDATE quantity=VALUES(quantity);
+(6, 'Main Warehouse', 1);
 
 INSERT INTO purchase_orders (supplier_id, ordered_by, order_date, status, total_amount, remarks) VALUES
 (1, 1, CURDATE(), 'pending', 2600.00, 'Initial stock replenishment'),

@@ -4,6 +4,19 @@ All notable changes to iTrack Zimbabwe are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and releases use [Semantic Versioning](https://semver.org/).
 
+## [1.1.2] - 2026-11-19
+
+### Fixed
+
+- Opening a valid password-reset link now shows the "Choose a new password" form. Previously it reported that the password had already been changed, leaving no way to finish the reset.
+- Expired, already-used, or malformed reset links now show a clear error with a "Request another reset link" action instead of a form that could never succeed.
+- Password resets can no longer be submitted without a valid security token from the reset form, and the sign-in session is renewed after a successful reset.
+
+### Changed
+
+- The password-reset screen now matches the sign-in experience, with password visibility toggles, a minimum-length hint, and clearer guidance.
+- Added regression coverage for the reset flow and authentication primitives.
+
 ## [1.1.1] - 2026-11-18
 
 ### Added

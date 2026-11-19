@@ -448,9 +448,11 @@ class Database
         $pdo->exec("INSERT OR IGNORE INTO clients (company_name, contact_name, email, phone, address, status) VALUES
             ('Zim Retail Ltd.', 'Ava Ndlovu', 'ava.ndlovu@example.com', '+263 77 345 6789', '88 Commerce Road, Harare', 'active'),
             ('Metro Logistics', 'Brian Moyo', 'brian.moyo@example.com', '+263 77 456 7890', '42 Logistics Drive, Gweru', 'active')");
+        // Legacy sample installs use their own IMEIs so they cannot collide with
+        // inventory device identifiers (a collision blocks installing that device).
         $pdo->exec("INSERT OR IGNORE INTO gps_devices (device_name, imei, serial, sim_number, status) VALUES
-            ('Tracker A1', '123456789012345', 'SN-A1001', '0712345678', 'installed'),
-            ('Tracker B2', '987654321098765', 'SN-B2002', '0712345679', 'available')");
+            ('Tracker A1', '355123456789012', 'SN-A1001', '0712345678', 'installed'),
+            ('Tracker B2', '355987654321098', 'SN-B2002', '0712345679', 'available')");
         // Each inventory row is one physical device with a unique identifier.
         // Seed all five stockable categories so none are missing from a fresh DB.
         $pdo->exec("INSERT OR IGNORE INTO products (category_id, name, sku, imei, sim_number, device_type, item_category, item_type, unit, cost_price, selling_price, vat_rate, opening_stock, reorder_level, status) VALUES

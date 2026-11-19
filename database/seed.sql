@@ -25,9 +25,12 @@ INSERT INTO clients (company_name, contact_name, email, phone, address, status) 
 ('Metro Logistics', 'Brian Moyo', 'brian.moyo@example.com', '+263 77 456 7890', '42 Logistics Drive, Gweru', 'active')
 ON DUPLICATE KEY UPDATE company_name=VALUES(company_name), email=VALUES(email);
 
+-- Legacy sample installations use their own IMEIs. They must NOT reuse the
+-- inventory device identifiers below: an IMEI present here is treated as
+-- "already registered" when that inventory device is selected for install.
 INSERT INTO gps_devices (device_name, imei, serial, sim_number, status) VALUES
-('Tracker A1', '123456789012345', 'SN-A1001', '0712345678', 'installed'),
-('Tracker B2', '987654321098765', 'SN-B2002', '0712345679', 'available')
+('Tracker A1', '355123456789012', 'SN-A1001', '0712345678', 'installed'),
+('Tracker B2', '355987654321098', 'SN-B2002', '0712345679', 'available')
 ON DUPLICATE KEY UPDATE imei=VALUES(imei), serial=VALUES(serial);
 
 -- Every inventory row is one physical device. Each product carries a unique

@@ -208,14 +208,21 @@ class Product extends Model
     {
         $rows = $this->fetchAll(
             'SELECT product_id, COUNT(*) AS quantity_installed FROM (
-                SELECT tracker_product_id AS product_id FROM gps_devices WHERE status = :status AND tracker_product_id IS NOT NULL
-                UNION ALL SELECT fls_product_id FROM gps_devices WHERE status = :status AND fls_product_id IS NOT NULL
-                UNION ALL SELECT camera_product_id FROM gps_devices WHERE status = :status AND camera_product_id IS NOT NULL
-                UNION ALL SELECT sim_product_id FROM gps_devices WHERE status = :status AND sim_product_id IS NOT NULL
-                UNION ALL SELECT camera_sim_product_id FROM gps_devices WHERE status = :status AND camera_sim_product_id IS NOT NULL
-                UNION ALL SELECT hard_drive_product_id FROM gps_devices WHERE status = :status AND hard_drive_product_id IS NOT NULL
+                SELECT tracker_product_id AS product_id FROM gps_devices WHERE status = :tracker_status AND tracker_product_id IS NOT NULL
+                UNION ALL SELECT fls_product_id FROM gps_devices WHERE status = :fls_status AND fls_product_id IS NOT NULL
+                UNION ALL SELECT camera_product_id FROM gps_devices WHERE status = :camera_status AND camera_product_id IS NOT NULL
+                UNION ALL SELECT sim_product_id FROM gps_devices WHERE status = :sim_status AND sim_product_id IS NOT NULL
+                UNION ALL SELECT camera_sim_product_id FROM gps_devices WHERE status = :camera_sim_status AND camera_sim_product_id IS NOT NULL
+                UNION ALL SELECT hard_drive_product_id FROM gps_devices WHERE status = :hard_drive_status AND hard_drive_product_id IS NOT NULL
             ) installed GROUP BY product_id',
-            [':status' => 'installed']
+            [
+                ':tracker_status' => 'installed',
+                ':fls_status' => 'installed',
+                ':camera_status' => 'installed',
+                ':sim_status' => 'installed',
+                ':camera_sim_status' => 'installed',
+                ':hard_drive_status' => 'installed',
+            ]
         );
         $quantities = [];
         foreach ($rows as $row) {
